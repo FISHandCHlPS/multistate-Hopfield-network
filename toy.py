@@ -18,17 +18,15 @@ def E(x: ArrayLike) -> Array:
     amplitude = 1.0
     mu = jnp.array([2,4], dtype=float)
     sigma = 1.0
-    e = amplitude * jnp.exp(-((x - mu)**2 / (2 * sigma**2)))
-    return jnp.sum(e)
+    e = amplitude * jnp.exp( jnp.sum( -((x - mu)**2 / (2 * sigma**2)), axis=-1))
+    return e
 
 # 初期値やパラメータ
 num_particles = 25      # 並列化する粒子数
-# range = jnp.arange(5, dtype=float)
-# initial = jnp.stack( jnp.meshgrid([range.flatten(), range.flatten()]), axis=-1 )   # shape=(25, 2)
+# TODO:ランダムな初期値にする
 initial = jnp.stack(jnp.meshgrid(jnp.arange(5, dtype=float), jnp.arange(2, 7, dtype=float)), axis=-1).reshape(-1, 2, order='F')
-#print(initial)
 learning_rate = 0.1     # 学習率
-steps = 1000             # 合計ステップ数
+steps = 100             # 合計ステップ数
 grad_E = jax.vmap(jax.grad(E))  # 導関数
 
 
@@ -46,7 +44,7 @@ def calc_force(x0: ArrayLike, x1: ArrayLike) -> Array:  # ([d], [d]) -> [d]
     距離×力 x0に働く
     """
     diff = x0 - x1
-    return diff * jnp.dot(diff, diff)
+    return diff / (jnp.dot(diff, diff) + 1e-10) 
 # 他の全ての粒子との相互作用を計算
 calc_force_v = jax.vmap(calc_force, in_axes=(None, 0), out_axes=0)  # ([d], [n,d]) -> [n,d]
 
@@ -96,7 +94,7 @@ colors = Category10[10] if num_particles <= 10 else Category10[10] * ((num_parti
 for i in range(num_particles):
     xs = history[:, i, 0]
     ys = history[:, i, 1]
-    p.line(xs, ys, line_width=2, alpha=0.3, color=colors[i], legend_label=f"particle {i}")
+    p.line(xs, ys, line_width=2, alpha=0.3, color=colors[i])#, legend_label=f"particle {i}")
     #p.circle(xs, ys, size=4, color=colors[i], alpha=0.5)
 
 p.legend.click_policy = "hide"
