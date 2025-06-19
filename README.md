@@ -8,7 +8,7 @@
 
 ## 相互作用
 各粒子同士が近いほど反発力が生じる  
-粒子$x$, 距離$d(x_i, x_j)$
+粒子$x$, 距離$d(x_i, x_j)$  
 $F = \frac{1}{d(x_i, x_j)^2}$  
 方向×反発力  
 $x_i \leftarrow x_i + \nabla E - \sum_{j \neq i} (x_i - x_j)F$  

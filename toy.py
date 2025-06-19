@@ -19,31 +19,24 @@ def E(x: ArrayLike) -> Array:
     mu = jnp.array([2,4], dtype=float)
     sigma = 1.0
     e = amplitude * jnp.exp( jnp.sum( -((x - mu)**2 / (2 * sigma**2)), axis=-1))
-    return e
+    return -e
 
 # 初期値やパラメータ
 num_particles = 25      # 並列化する粒子数
 # TODO:ランダムな初期値にする
 initial = jnp.stack(jnp.meshgrid(jnp.arange(5, dtype=float), jnp.arange(2, 7, dtype=float)), axis=-1).reshape(-1, 2, order='F')
 learning_rate = 0.1     # 学習率
-steps = 100             # 合計ステップ数
+steps = 10             # 合計ステップ数
 grad_E = jax.vmap(jax.grad(E))  # 導関数
-
-
-# # 勾配降下法
-# def update(x: ArrayLike) -> Array:
-#     grad = grad_E(x)    # x: shape(並列数, 次元数)
-#     return x + learning_rate * grad
-# update_v = jax.vmap(update) #　並列化した更新関数
 
 
 def calc_force(x0: ArrayLike, x1: ArrayLike) -> Array:  # ([d], [d]) -> [d]
     """
     相互作用関数
     近づくほど強く反発する  斥力
-    距離×力 x0に働く
+    距離×力 x0に着目して、x1方向に働く
     """
-    diff = x0 - x1
+    diff = x1 - x0
     return diff / (jnp.dot(diff, diff) + 1e-10) 
 # 他の全ての粒子との相互作用を計算
 calc_force_v = jax.vmap(calc_force, in_axes=(None, 0), out_axes=0)  # ([d], [n,d]) -> [n,d]
@@ -76,7 +69,8 @@ def step_fn(xs: Array, _: Any) -> tuple[Array, Array]:
     """
     grad = grad_E(xs) # shape: (num_particles, 2)
     interaction = total_force(xs) # shape: (num_particles, 2)
-    xs_new = xs + learning_rate * (grad + interaction)
+    # 勾配降下 + 斥力作用
+    xs_new = xs - learning_rate * grad + interaction
     return xs_new, xs_new
 
 
