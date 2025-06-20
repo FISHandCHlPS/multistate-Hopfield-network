@@ -40,9 +40,9 @@ def calc_force(x0: ArrayLike, x1: ArrayLike) -> Array:  # ([d], [d]) -> [d]
     近づくほど強く反発する  斥力
     距離×力 x0に着目して、x1方向に働く
     """
-    alpha = 3.0  # 斥力の強さ
+    alpha = 1.0  # 斥力の強さ
     vec = x1 - x0
-    force = 1 / (jnp.dot(vec, vec)**0.5 + 1e-10)
+    force = 1 / (jnp.dot(vec, vec)**1 + 1e-10)
     return alpha * force * vec
 # 他の全ての粒子との相互作用を計算
 calc_force_v = jax.vmap(calc_force, in_axes=(None, 0), out_axes=0)  # ([d], [n,d]) -> [n,d]

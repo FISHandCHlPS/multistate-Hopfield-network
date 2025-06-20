@@ -17,5 +17,5 @@ F = \frac{1}{ N d(x_i, x_j) }
 ```math
 x_i \leftarrow x_i + \alpha \nabla E + \sum_{j \neq i} \frac{(x_j - x_i)}{N d(x_i, x_j)}
 ```
-全ての粒子に対して行われる $O(n^2)$ 
+全ての粒子に対して行われるため計算量は $O(n^2)$ 
 
