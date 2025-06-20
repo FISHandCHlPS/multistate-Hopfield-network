@@ -8,4 +8,5 @@ dependencies = [
     "bokeh>=3.7.3",
     "jax>=0.6.1",
     "matplotlib>=3.10.3",
+    "plotly>=6.1.2",
 ]
