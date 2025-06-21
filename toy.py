@@ -1,12 +1,11 @@
 import jax
 import jax.numpy as jnp
 import jax.lax as lax
-from bokeh.plotting import figure, show
-from bokeh.palettes import Category10
 from jax import Array
 from jax.typing import ArrayLike
 from typing import Any
 from jax import random
+from plot import plotTrajectory, animationTrajectory
 
 
 # 初期値やパラメータ
@@ -60,7 +59,7 @@ def total_force(x: ArrayLike) -> Array:
     return forces.sum(axis=1) / num_particles  # shape: (n, d)  平均斥力を計算
 
 
-grad_E = jax.vmap(jax.grad(E))  # 導関数
+grad_E = jax.vmap(jax.grad(E))  # ベクトル化された導関数
 # scan(vmap)形式：scanの中でvmapを使い、全粒子を一括更新
 def step_fn(xs: Array, _: Any) -> tuple[Array, Array]:
     """
@@ -76,54 +75,13 @@ def step_fn(xs: Array, _: Any) -> tuple[Array, Array]:
     return xs_new, xs_new
 
 
-# scanで全粒子まとめて更新
-xs_init = initial
-_, history = lax.scan(step_fn, xs_init, None, length=steps)     # history: (steps, num_particles, 2)
-# 初期値も履歴に含める
-history = jnp.concatenate([xs_init[None, :], history], axis=0)  # (steps+1, num_particles, 2)
+if __name__ == "__main__":
+    # scanで全粒子まとめて更新
+    xs_init = initial
+    _, history = lax.scan(step_fn, xs_init, None, length=steps)     # history: (steps, num_particles, 2)
+    # 初期値も履歴に含める
+    history = jnp.concatenate([xs_init[None, :], history], axis=0)  # (steps+1, num_particles, 2)
 
-# bokehでのプロット
-# p = figure(title="Particle Trajectories in 2D", x_axis_label='x', y_axis_label='y', width=600, height=600)
-# colors = Category10[10] if num_particles <= 10 else Category10[10] * ((num_particles // 10) + 1)
+    plotTrajectory(history, num_particles)
+    # animationTrajectory(history, num_particles)
 
-# for i in range(num_particles):
-#     xs = history[:, i, 0]
-#     ys = history[:, i, 1]
-#     p.line(xs, ys, line_width=2, alpha=0.3, color=colors[i])#, legend_label=f"particle {i}")
-#     #p.circle(xs, ys, size=4, color=colors[i], alpha=0.5)
-
-# # p.legend.click_policy = "hide"
-# show(p)
-
-
-# == Plotly Expressによるアニメーション ==
-import pandas as pd
-import plotly.express as px
-
-# history: (steps+1, num_particles, 2) → DataFrameへ変換
-records = []
-for t in range(0, history.shape[0], 10):
-    for i in range(num_particles):
-        records.append({
-            "t": t,
-            "particle": i,
-            "x": float(history[t, i, 0]),
-            "y": float(history[t, i, 1])
-        })
-df = pd.DataFrame(records)
-
-fig = px.scatter(
-    df,
-    x="x",
-    y="y",
-    animation_frame="t",
-    animation_group="particle",
-    color="particle",
-    color_continuous_scale="Viridis",
-    range_x=[float(jnp.min(history[...,0]))-1, float(jnp.max(history[...,0]))+1],
-    range_y=[float(jnp.min(history[...,1]))-1, float(jnp.max(history[...,1]))+1],
-    title="Particle Animation (Plotly Express)",
-    width=600,
-    height=600,
-)
-fig.show()
