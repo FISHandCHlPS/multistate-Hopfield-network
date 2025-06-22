@@ -31,7 +31,7 @@ def plotTrajectory(history: ArrayLike, num_particles: int, title="Trajectories")
     fig.show()
 
 
-def animationTrajectory(history: ArrayLike, num_particles: int):
+def animationTrajectory(history: ArrayLike, num_particles: int, interval: int=10):
     """
     == Plotly Expressによるアニメーション ==
     history: (steps+1, num_particles, 2)
@@ -40,7 +40,7 @@ def animationTrajectory(history: ArrayLike, num_particles: int):
     # TODO:3Dplotでエネルギーの上昇を可視化
     # history → DataFrameへ変換
     records = []
-    for t in range(0, history.shape[0], 10):
+    for t in range(0, history.shape[0], interval):
         for i in range(num_particles):
             records.append({
                 "t": t,
