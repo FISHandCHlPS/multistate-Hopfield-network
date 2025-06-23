@@ -15,7 +15,7 @@ F = \frac{1}{ N d(x_i, x_j) }
 ```
 方向 × 平均反発力  
 ```math
-x_i \leftarrow x_i + \alpha \nabla E + \sum_{j \neq i} \frac{(x_j - x_i)}{N d(x_i, x_j)}
+x_i \leftarrow x_i + \alpha \nabla E + \sum_{j \neq i} \frac{(x_i - x_j)}{N d(x_i, x_j)}
 ```
 全ての粒子に対して行われるため計算量は $O(n^2)$ 
 
