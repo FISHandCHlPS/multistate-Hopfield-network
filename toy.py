@@ -5,17 +5,16 @@ from jax import Array
 from jax.typing import ArrayLike
 from typing import Any
 from jax import random
-from plot import plotTrajectory, animationTrajectory
+from plot import plotTrajectory, animationTrajectory, plotEnergySurface
 
 
 # 初期値やパラメータ
-num_particles = 100      # 並列化する粒子数
+num_particles = 200      # 並列化する粒子数
 key = random.PRNGKey(42)
-init_mean, init_std = -2.0, 4.0
+init_mean, init_std = 0.0, 10.0
 initial = random.normal(key, shape=(num_particles, 2)) * init_std + init_mean
-# 格子状の初期値
-# initial = jnp.stack(jnp.meshgrid(jnp.arange(5, dtype=float), jnp.arange(2, 7, dtype=float), indexing='ij'), axis=-1).reshape(-1, 2, order='F')
-learning_rate = 2     # 学習率
+learning_rate = 2       # 学習率
+alpha = 8               # 斥力の強さ
 steps = 500             # 合計ステップ数
 
 
@@ -26,10 +25,12 @@ def E(x: ArrayLike) -> Array:
     return: スカラー
     """
     x = jnp.asarray(x)
-    mu = jnp.array([2,3], dtype=float)
-    sigma = 3.0     # ラプラス分布の場合は分散=2sigma
-    # e = jnp.exp( jnp.sum( -((x - mu)**2 / (2 * sigma**2)), axis=-1))
-    e = (1 / (2 * sigma)) * jnp.exp(-jnp.sum(jnp.abs(x - mu)) / sigma)
+    mu = jnp.array([[7,13], 
+                    [-2,-4]], dtype=jnp.float32)
+    sigma = 2.0
+    dist = jnp.sqrt(jnp.sum((x - mu)**2, axis=1))
+    e_i = (1 / (2 * sigma)) * jnp.exp(-dist / sigma)
+    e = jnp.sum(e_i)
     return -e
 
 
@@ -39,7 +40,6 @@ def calc_force(x0: ArrayLike, x1: ArrayLike) -> Array:  # ([d], [d]) -> [d]
     近づくほど強く反発する  斥力
     距離×力
     """
-    alpha = 1  # 斥力の強さ
     vec = x0 - x1
     force = 1 / (jnp.dot(vec, vec)**2 + 1e-10)
     return alpha * force * vec
@@ -84,4 +84,5 @@ if __name__ == "__main__":
 
     #plotTrajectory(history, num_particles)
     animationTrajectory(history, num_particles, 10)
+    #plotEnergySurface(E, -20, 20, -20, 20, 100)
 
