@@ -1,13 +1,12 @@
 """
 描画用関数の定義
 """
-
 import pandas as pd
 import plotly.express as px
-from jax import numpy as jnp
-from jax.typing import ArrayLike
 import numpy as np
+from numpy.typing import ArrayLike
 import plotly.graph_objects as go
+
 
 def plotEnergySurface(func, xmin=-10, xmax=10, ymin=-10, ymax=10, num=100):
     """
@@ -39,54 +38,29 @@ def plotEnergySurface(func, xmin=-10, xmax=10, ymin=-10, ymax=10, num=100):
 
 
 
-def plotTrajectory(history: ArrayLike, num_particles: int, title="Trajectories"):
+def plotTrajectory(history: ArrayLike, title="Trajectories"):
     """
     == Plotly Expressによる軌跡描画 ==
     history: (steps+1, num_particles, 2)
     各パーティクルの軌跡を色分けしてプロット
     """
-    history = jnp.asarray(history)
-
-    records = []
-    steps = history.shape[0]
-    for t in range(steps):
-        for i in range(num_particles):
-            records.append({
-                "t": t,
-                "particle": i,
-                "x": float(history[t, i, 0]),
-                "y": float(history[t, i, 1])
-            })
-    df = pd.DataFrame(records)
+    history = np.asarray(history)
+    df = arrayToDataFrame(history, interval=10)
     fig = px.line(df, x="x", y="y", color="particle", line_group="particle", title=title)
     fig.update_layout(xaxis_title="X", yaxis_title="Y")
     fig.show()
 
 
-
-def animationTrajectory(history: ArrayLike, num_particles: int, interval: int=10):
+def animationTrajectory(history: ArrayLike, interval: int=10):
     """
     == Plotly Expressによるアニメーション ==
     history: (steps+1, num_particles, 2)
     """
-    history = jnp.asarray(history)  # (steps+1, num_particles, 2)
+    history = np.asarray(history)  # (steps+1, num_particles, 2)
     # TODO:3Dplotでエネルギーの上昇を可視化
     # history → DataFrameへ変換
     # 間引き
-    selected = history[::interval]  # (steps+1//interval, num_particles, 2)
-    steps = selected.shape[0]
-    particles = selected.shape[1]
-    t_arr = jnp.arange(0, history.shape[0], interval)
-    t_col = jnp.repeat(t_arr, particles)
-    particle_col = jnp.tile(jnp.arange(particles), steps)
-    x_col = selected[:, :, 0].ravel()
-    y_col = selected[:, :, 1].ravel()
-    df = pd.DataFrame({
-        "t": t_col,
-        "particle": particle_col,
-        "x": x_col,
-        "y": y_col
-    })
+    df = arrayToDataFrame(history, interval)
 
     fig = px.scatter(
         df,
@@ -96,10 +70,47 @@ def animationTrajectory(history: ArrayLike, num_particles: int, interval: int=10
         animation_group="particle",
         color="particle",
         color_continuous_scale="Viridis",
-        range_x=[float(jnp.min(history[0,:,0]))-1, float(jnp.max(history[0,:,0]))+1],   # 初期状態で全ての点が描画できる範囲を指定
-        range_y=[float(jnp.min(history[0,:,1]))-1, float(jnp.max(history[0,:,1]))+1],
+        range_x=[float(np.min(history[0,:,0]))-1, float(np.max(history[0,:,0]))+1],   # 初期状態で全ての点が描画できる範囲を指定
+        range_y=[float(np.min(history[0,:,1]))-1, float(np.max(history[0,:,1]))+1],
         title="Particle Animation (Plotly Express)",
         width=600,
         height=600,
     )
     fig.show()
+
+
+def arrayToDataFrame(history: ArrayLike, interval: int=10):
+    """
+    history: (steps+1, num_particles, 2)
+    配列に不正な値（NaN, inf, None）が含まれていないかチェックし、
+    問題があれば例外を投げる。
+    """
+    selected = history[::interval]  # (steps+1//interval, num_particles, 2)
+    steps = selected.shape[0]
+    particles = selected.shape[1]
+    t_arr = np.arange(0, history.shape[0], interval)
+    t_col = np.repeat(t_arr, particles)
+    particle_col = np.tile(np.arange(particles), steps)
+    x_col = selected[:, :, 0].ravel()
+    y_col = selected[:, :, 1].ravel()
+
+    # 不正な値チェック
+    def check_invalid(arr, name):
+        arr_np = np.asarray(arr)
+        if np.any(np.isnan(arr_np)):
+            raise ValueError(f'{name} に NaN が含まれています')
+        if np.any(np.isinf(arr_np)):
+            raise ValueError(f'{name} に inf が含まれています')
+        if arr_np.dtype == object and np.any([v is None for v in arr_np.ravel()]):
+            raise ValueError(f'{name} に None が含まれています')
+
+    check_invalid(x_col, "x_col")
+    check_invalid(y_col, "y_col")
+
+    df = pd.DataFrame({
+        "t": t_col,
+        "particle": particle_col,
+        "x": x_col,
+        "y": y_col
+    })  
+    return df

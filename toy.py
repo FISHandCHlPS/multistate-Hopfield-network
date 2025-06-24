@@ -3,7 +3,6 @@ import jax.numpy as jnp
 import jax.lax as lax
 from jax import Array
 from jax.typing import ArrayLike
-from typing import Any
 from jax import random
 from plot import plotTrajectory, animationTrajectory, plotEnergySurface
 
@@ -14,7 +13,7 @@ key = random.PRNGKey(42)
 init_mean, init_std = 0.0, 10.0
 initial = random.normal(key, shape=(num_particles, 2)) * init_std + init_mean
 learning_rate = 2       # 学習率
-alpha = 8               # 斥力の強さ
+alpha = 5               # 斥力の強さ
 beta = 0.1              # 入力刺激の強さ
 steps = 500             # 合計ステップ数
 
@@ -45,7 +44,7 @@ def calc_force(x0: ArrayLike, x1: ArrayLike) -> Array:  # ([d], [d]) -> [d]
     距離×力
     """
     vec = x0 - x1
-    force = 1 / (jnp.dot(vec, vec)**2 + 1e-10)
+    force = 1 / (jnp.dot(vec, vec)**2 + 1e-2)    # 最大でも距離の100倍の力(このとき距離は十分小さい)
     return force * vec
 # 他の全ての粒子との相互作用を計算
 calc_force_v = jax.vmap(calc_force, in_axes=(None, 0), out_axes=0)  # ([d], [n,d]) -> [n,d]
@@ -66,14 +65,15 @@ def total_force(x: ArrayLike) -> Array:
 
 def stimulation_force(xs: ArrayLike, target: ArrayLike) -> Array:
     """
-    入力刺激による力を計算。離れているほど大きな力。
+    入力刺激による力を計算。離れているほど大きな力。NaNは無視する。
     xs: 粒子の現在の状態 (jax.Array, shape=(num_particles, 2))
     target: 入力刺激座標 (jax.Array, shape=(2,))
     return: (num_particles, 2) の力ベクトル
     """
-    vec = target - xs  # shape: (num_particles, 2)
-    dist = jnp.linalg.norm(vec, axis=1, keepdims=True)  # shape: (num_particles, 1)
-    return vec * dist
+    xs = jnp.asarray(xs)
+    target = jnp.asarray(target)
+    vec = target[None, :] - xs
+    return jnp.nan_to_num(vec, nan=0.0)
 
 
 
@@ -87,23 +87,24 @@ def step_fn(xs: ArrayLike, target: ArrayLike) -> tuple[Array, Array]:
     """
     grad = grad_E(xs)                # shape(粒子数、次元数): 勾配
     interaction = total_force(xs)    # shape(粒子数、次元数): 斥力
-    stimulation = stimulation_force(xs, target)
+    stimulation = stimulation_force(xs, target=target)
     # 勾配降下 + 斥力作用 + 入力刺激
     xs_new = xs - learning_rate * grad + alpha * interaction + beta * stimulation
-    #xs_new = xs + beta * stimulation
     return xs_new, xs_new
 
 
 
 if __name__ == "__main__":
-    target = jnp.array([5.0, 5.0])  # 一定の入力刺激
+    target = jnp.array([3.0, 3.0])  # 一定の入力刺激
+    stimulus = jnp.concatenate([jnp.tile(target, (50, 1)), jnp.full((steps-50, 2), jnp.nan)], axis=0)   # 50ステップ目まで刺激を与える
     xs_init = initial   # 初期値
-    targets = jnp.tile(target, (steps, 1))  # shape: (steps, 2)
-    _, history = lax.scan(step_fn, xs_init, targets)     # history: (steps, num_particles, 2)
+
+    _, history = lax.scan(step_fn, xs_init, stimulus)     # history: (steps, num_particles, 2)
     # 初期値も履歴に含める
     history = jnp.concatenate([xs_init[None, :], history], axis=0)  # (steps+1, num_particles, 2)
+    print('computed')
 
-    plotTrajectory(history, num_particles)
-    #animationTrajectory(history, num_particles, 20)
+    #plotTrajectory(history)
+    animationTrajectory(history, 10)
     #plotEnergySurface(E, -20, 20, -20, 20, 100)
 

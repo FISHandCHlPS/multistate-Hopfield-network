@@ -247,6 +247,7 @@ dependencies = [
     { name = "bokeh" },
     { name = "jax" },
     { name = "matplotlib" },
+    { name = "numpy" },
     { name = "plotly" },
 ]
 
@@ -255,6 +256,7 @@ requires-dist = [
     { name = "bokeh", specifier = ">=3.7.3" },
     { name = "jax", specifier = ">=0.6.1" },
     { name = "matplotlib", specifier = ">=3.10.3" },
+    { name = "numpy", specifier = ">=2.3.0" },
     { name = "plotly", specifier = ">=6.1.2" },
 ]
 
