@@ -70,13 +70,14 @@ def animationTrajectory(history: ArrayLike, interval: int=10):
         animation_group="particle",
         color="particle",
         color_continuous_scale="Viridis",
-        range_x=[float(np.min(history[0,:,0]))-1, float(np.max(history[0,:,0]))+1],   # 初期状態で全ての点が描画できる範囲を指定
-        range_y=[float(np.min(history[0,:,1]))-1, float(np.max(history[0,:,1]))+1],
+        range_x=[float(np.min(history[:,:,0]))-1, float(np.max(history[:,:,0]))+1],   # 初期状態で全ての点が描画できる範囲を指定
+        range_y=[float(np.min(history[:,:,1]))-1, float(np.max(history[:,:,1]))+1],
         title="Particle Animation (Plotly Express)",
         width=600,
         height=600,
     )
     fig.show()
+    fig.write_html("animation.html")
 
 
 def arrayToDataFrame(history: ArrayLike, interval: int=10):

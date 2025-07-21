@@ -12,6 +12,7 @@ import jax.nn
 import jax.lax
 import jax.random
 import matplotlib.pyplot as plt
+import random
 from cifar100 import get_cifar100
 
 
@@ -36,10 +37,9 @@ def update(x: ArrayLike, W: Array) -> Array:
         Array: 更新後の状態ベクトル (shape: (d,))
     """
     x = jnp.asarray(x)
-    x_new = W @ jax.nn.softmax( 1000 * W.T @ x, axis=0)
-    # test_s = jax.nn.softmax( 1000 * W.T @ x )
-    # jax.debug.print('test_s: {test_s}', test_s = test_s)
+    x_new = W @ jax.nn.softmax( 1000 * W.T @ x)
     return x_new
+update_v = jax.vmap(update, in_axes=(0, None), out_axes=0)
 
 
 if __name__ == "__main__":
@@ -55,33 +55,49 @@ if __name__ == "__main__":
     norm_W = jnp.linalg.norm(W, axis=0) # (100,)
     W = W / norm_W[None, :]     # 記憶のノルムを揃える
 
-    # 2. テスト画像（例: 0番目）にノイズを加える
-    key_img = 0
-    x_true = W[:,key_img]  # 正解画像ベクトル
-    # ノイズ: 各画素に正規分布ノイズを加える（平均0, 標準偏差0.1）
-    seed = int(time.time())
+    # 2. すべての画像にノイズを加えて比較画像を一覧表示
+    num_imgs = W.shape[1]
+    img_size = int(jnp.sqrt(W.shape[0]))  # 32
+    # 各画像ごとに異なる乱数キーでノイズ生成
+    seed = int(time.time() * 1e6) % (2**32)
     rng = jax.random.PRNGKey(seed)
-    noise = jax.random.normal(rng, shape=x_true.shape) * 0.005
-    x_noisy = x_true + noise
+    noise = jax.random.normal(rng, shape=W.shape) * 0.01  # (1024, 100)
+    x_noisy = (W + noise).T   # (100, 1024)
     x_noisy = jnp.clip(x_noisy, 0.0, 1.0)
 
     # 3. MHNダイナミクスで復元
     def step(carry, _):
-        x_new = update(carry, W)
+        x_new = update_v(carry, W)
         return x_new, x_new
-    x, traj = jax.lax.scan(step, x_noisy, None, length=100)
+    x, traj = jax.lax.scan(step, x_noisy, None, length=10)
+    traj = jnp.vstack([x_noisy[None, ...], traj])  # 初期状態も含める shape(11, 100, 1024)
 
 
-    # 4. 結果表示
-    fig, axes = plt.subplots(1, 3, figsize=(12, 4))
-    axes[0].imshow(x_true.reshape(32, 32), cmap='gray')
-    axes[0].set_title('Original')
-    axes[1].imshow(x_noisy.reshape(32, 32), cmap='gray')
-    axes[1].set_title('Noisy Input')
-    axes[2].imshow(x.reshape(32, 32), cmap='gray')
-    axes[2].set_title('MHN Output')
-    for ax in axes:
-        ax.axis('off')
+    # 4. 結果表示（3つのランダムな画像を表示）
+    random.seed(seed)  # 再現性のためにseedを指定
+    indices = random.sample(range(num_imgs), 3)
+    fig, axes = plt.subplots(3, 3, figsize=(6, 6))  # 小さめに
+    for row, idx in enumerate(indices):
+        axes[row, 0].imshow(W[:, idx].reshape(32, 32), cmap='gray')
+        axes[row, 0].set_title(f'Original #{idx}', fontsize=10)
+        axes[row, 1].imshow(x_noisy[idx].reshape(32, 32), cmap='gray')
+        axes[row, 1].set_title('Noisy Input', fontsize=10)
+        axes[row, 2].imshow(x[idx].reshape(32, 32), cmap='gray')
+        axes[row, 2].set_title('MHN Output', fontsize=10)
+        for col in range(3):
+            axes[row, col].axis('off')
+    plt.tight_layout(pad=0.2, w_pad=0.2, h_pad=0.2)  # 余白を詰める
+    plt.show()
+
+    # 類似度の時系列推移をプロット
+    sim = jnp.sum(traj * W.T, axis=2) / jnp.linalg.norm(traj, axis=2)
+
+    plt.figure(figsize=(6, 6))
+    plt.plot(sim)
+    plt.xlabel('Step')
+    plt.ylabel('Cosine Similarity')
+    plt.title('Similarity to Original')
+    plt.grid(True)
     plt.tight_layout()
     plt.show()
 

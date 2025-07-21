@@ -5,19 +5,19 @@ from jax import Array
 from jax.typing import ArrayLike
 from jax import random
 from plot import plotTrajectory, animationTrajectory, plotEnergySurface
+from Energy import CMHN_Energy
+from jax.tree_util import Partial
 
 
 # 初期値やパラメータ
-num_particles = 100      # 並列化する粒子数
+num_particles = 50      # 並列化する粒子数
 key = random.PRNGKey(42)
-init_mean, init_std = 0.0, 10.0
+init_mean, init_std = jnp.array([-0.0, 0.0]), 1
 initial = random.normal(key, shape=(num_particles, 2)) * init_std + init_mean
-learning_rate = 2       # 学習率
-alpha = 5               # 斥力の強さ
+learning_rate = 0.5       # 学習率
+alpha = 1               # 斥力の強さ
 beta = 0.1              # 入力刺激の強さ
-steps = 500             # 合計ステップ数
-
-
+steps = 50             # 合計ステップ数
 
 def E(x: ArrayLike) -> Array:
     """
@@ -33,8 +33,13 @@ def E(x: ArrayLike) -> Array:
     e_i = (1 / (2 * sigma)) * jnp.exp(-dist / sigma)
     e = jnp.sum(e_i)
     return -e
-grad_E = jax.vmap(jax.grad(E))  # ベクトル化された導関数
+#grad_E = jax.vmap(jax.grad(E))  # ベクトル化された導関数
 
+W = jnp.array([[ 1,-1, 1],
+               [-1, 1, 1]], dtype=jnp.float32)
+beta = 5.0
+E_CMHN = Partial(CMHN_Energy, W=W, beta=beta)   # 部分適用でxのみの関数に変換
+grad_E = jax.vmap(jax.grad(E_CMHN))  # ベクトル化された導関数
 
 
 def calc_force(x0: ArrayLike, x1: ArrayLike) -> Array:  # ([d], [d]) -> [d]
@@ -44,7 +49,7 @@ def calc_force(x0: ArrayLike, x1: ArrayLike) -> Array:  # ([d], [d]) -> [d]
     距離×力
     """
     vec = x0 - x1
-    force = 1 / (jnp.dot(vec, vec)**2 + 1e-2)    # 最大でも距離の100倍の力(このとき距離は十分小さい)
+    force = 1 / (jnp.dot(vec, vec)**5 + 1e-2)
     return force * vec
 # 他の全ての粒子との相互作用を計算
 calc_force_v = jax.vmap(calc_force, in_axes=(None, 0), out_axes=0)  # ([d], [n,d]) -> [n,d]
@@ -89,7 +94,7 @@ def step_fn(xs: ArrayLike, target: ArrayLike) -> tuple[Array, Array]:
     interaction = total_force(xs)    # shape(粒子数、次元数): 斥力
     stimulation = stimulation_force(xs, target=target)
     # 勾配降下 + 斥力作用 + 入力刺激
-    xs_new = xs - learning_rate * grad + alpha * interaction + beta * stimulation
+    xs_new = xs - learning_rate * grad + alpha * interaction# + beta * stimulation
     return xs_new, xs_new
 
 
@@ -105,6 +110,7 @@ if __name__ == "__main__":
     print('computed')
 
     #plotTrajectory(history)
-    animationTrajectory(history, 10)
-    #plotEnergySurface(E, -20, 20, -20, 20, 100)
+    #animationTrajectory(history, 1)
+    plotEnergySurface(CMHN_Energy, -5, 5, -5, 5, 20)
+    #plotEnergySurface(DAM_Energy, -2, 2, -2, 2, 20)
 
