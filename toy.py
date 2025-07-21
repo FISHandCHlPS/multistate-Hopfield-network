@@ -49,7 +49,8 @@ def calc_force(x0: ArrayLike, x1: ArrayLike) -> Array:  # ([d], [d]) -> [d]
     距離×力
     """
     vec = x0 - x1
-    force = 1 / (jnp.dot(vec, vec)**5 + 1e-2)
+    force = 1 / (jnp.dot(vec, vec)**2 + 1e-5)
+    force = jnp.clip(force, 0.0, 10.0)
     return force * vec
 # 他の全ての粒子との相互作用を計算
 calc_force_v = jax.vmap(calc_force, in_axes=(None, 0), out_axes=0)  # ([d], [n,d]) -> [n,d]
@@ -64,7 +65,7 @@ def total_force(x: ArrayLike) -> Array:
     n = x.shape[0]
     mask = 1 - jnp.eye(n, dtype=bool)  # shape: (n, n)
     forces = forces * mask[:, :, None]  # 自己相互作用を除外
-    return forces.sum(axis=1) / num_particles  # shape: (n, d)  平均斥力を計算
+    return forces.sum(axis=1) / n  # shape: (n, d)  平均斥力を計算
 
 
 
@@ -110,7 +111,6 @@ if __name__ == "__main__":
     print('computed')
 
     #plotTrajectory(history)
-    #animationTrajectory(history, 1)
-    plotEnergySurface(CMHN_Energy, -5, 5, -5, 5, 20)
-    #plotEnergySurface(DAM_Energy, -2, 2, -2, 2, 20)
+    animationTrajectory(history, 1)
+    #plotEnergySurface(CMHN_Energy, -5, 5, -5, 5, 20)
 
