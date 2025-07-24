@@ -9,7 +9,7 @@ from jax import Array
 from jax.typing import ArrayLike
 from jax import random
 from Energy import CMHN_Energy
-from plot_particle_images import plot_particle_image_slider
+from plot_particle_images import plot_particle_image_slider, plot_img
 from jax.tree_util import Partial
 from toy import total_force
 import jax.lax as lax
@@ -35,9 +35,9 @@ W = images_flat.T  # (1024, 100)
 
 # 初期値: ランダムに選んだ画像＋ノイズ
 img_key, noise_key = random.split(key)
-random_index = random.choice(img_key, images_flat.shape[0])
+random_index = 0#random.choice(img_key, images_flat.shape[0])
 base_img = images_flat[random_index]  # (1024)
-noise = random.normal(noise_key, shape=(num_particles, base_img.shape[0])) * 0.01  # ノイズ強度は適宜調整
+noise = random.normal(noise_key, shape=(num_particles, base_img.shape[0])) * 0.001  # ノイズ強度は適宜調整
 initial = base_img + noise  # (num_particles, 1024)
 
 
@@ -67,4 +67,6 @@ if __name__ == "__main__":
     history = jnp.concatenate([xs_init[None, :], history], axis=0)  # (steps+1, num_particles, dim)
     print('computed')
 
+    plot_img(base_img.reshape(32, 32))
+    plot_img(initial[0].reshape(32, 32))
     plot_particle_image_slider(history)
