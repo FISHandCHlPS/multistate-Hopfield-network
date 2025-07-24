@@ -14,8 +14,19 @@
 F = \frac{1}{ N d(x_i, x_j) }
 ```
 方向 × 平均反発力  
-```math
-x_i \leftarrow x_i + \alpha \nabla E + \sum_{j \neq i} \frac{(x_i - x_j)}{N d(x_i, x_j)}
-```
 全ての粒子に対して行われるため計算量は $O(n^2)$ 
 
+## 更新則
+
+エネルギー関数
+```math
+lse(\beta, x) = \ln \sum \exp( \beta x )
+```
+```math
+E(x) = -lse(\beta, W^T x) + \frac{1}{2} x^T x + C
+```
+更新則
+```math
+x_i \leftarrow x_i + \alpha \nabla E + \frac{1}{N} \sum_{j \neq i} \frac{ (x_i - x_j) }{ \|x_i - x_j\|^c }
+```
+$\alpha=1$のときCCCPと等価
