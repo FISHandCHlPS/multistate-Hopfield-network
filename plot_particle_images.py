@@ -23,7 +23,6 @@ def plot_particle_image_slider(history):
     t_list = []
     p_list = []
     img = xs#to_uint8(xs)
-    print(xs.min(), xs.max())
     for t in range(steps):
         for i in range(num_particles):
             images.append(img[t, i].reshape(32, 32))

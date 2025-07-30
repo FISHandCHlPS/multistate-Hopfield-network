@@ -30,3 +30,4 @@ E(x) = -lse(\beta, W^T x) + \frac{1}{2} x^T x + C
 x_i \leftarrow x_i + \alpha \nabla E + \frac{1}{N} \sum_{j \neq i} \frac{ (x_i - x_j) }{ \|x_i - x_j\|^c }
 ```
 $\alpha=1$のときCCCPと等価
+SGDの場合はスケールがβ倍される

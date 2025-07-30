@@ -8,27 +8,26 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 from jax import random
-from Energy import CMHN_Energy
-from plot_particle_images import plot_particle_image_slider, plot_img
+from jax import lax
+from mpmhn.energy import CMHN_Energy
+from mpmhn.interaction import total_force
 from jax.tree_util import Partial
-from toy import total_force
-import jax.lax as lax
 from cifar100 import get_cifar100
-
+from plot import plot_particle_image_slider, plot_img
 
 # 粒子数やパラメータ設定
-num_particles = 10
+num_particles = 5
 key = random.PRNGKey(42)
-learning_rate = 0.1 # 学習率
-alpha = 0.1   # 斥力の強さ
-beta = 10.0  # CMHNの逆温度
+learning_rate = 1 # 学習率
+alpha = 0#0.05   # 斥力の強さ
+beta = 100.0  # CMHNの逆温度
 steps = 10 # 合計ステップ数
-
 
 # CIFAR画像を読み込み
 images, labels, class_names = get_cifar100()  # images: (100, 1, 32, 32)
 images_flat = images.reshape(images.shape[0], -1)  # (100, 1024)
 images_flat = images_flat / jnp.linalg.norm(images_flat, axis=1, keepdims=True)  # 各画像を正規化
+print(f'{jnp.linalg.norm(images_flat, axis=1)=}')
 
 # 画像ベクトルを列ベクトルとして100個並べた行列を重みとする（1024, 100）
 W = images_flat.T  # (1024, 100)
@@ -39,11 +38,11 @@ random_index = 0#random.choice(img_key, images_flat.shape[0])
 base_img = images_flat[random_index]  # (1024)
 noise = random.normal(noise_key, shape=(num_particles, base_img.shape[0])) * 0.001  # ノイズ強度は適宜調整
 initial = base_img + noise  # (num_particles, 1024)
-
+print(f'{jnp.linalg.norm(base_img)=}')
 
 # CMHNのエネルギー関数
 E_CMHN = Partial(CMHN_Energy, W=W, beta=beta)
-grad_E = jax.vmap(jax.grad(E_CMHN))
+grad_E = jax.vmap(jax.grad(E_CMHN))  # ベクトル化された導関数
 
 
 def step_fn(xs: ArrayLike, _=None) -> tuple[Array, Array]:
