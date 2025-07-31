@@ -4,10 +4,9 @@ import jax.lax as lax
 from jax import Array
 from jax.typing import ArrayLike
 from jax import random
-from plot import plotTrajectory, animationTrajectory, plotEnergySurface
-from Energy import CMHN_Energy
+from plot2d.plot import animationTrajectory
+from mpmhn.energy import CMHN_Energy
 from jax.tree_util import Partial
-
 
 # 初期値やパラメータ
 num_particles = 50      # 並列化する粒子数
@@ -18,6 +17,7 @@ learning_rate = 0.5       # 学習率
 alpha = 1               # 斥力の強さ
 beta = 0.1              # 入力刺激の強さ
 steps = 50             # 合計ステップ数
+
 
 def E(x: ArrayLike) -> Array:
     """
@@ -34,6 +34,7 @@ def E(x: ArrayLike) -> Array:
     e = jnp.sum(e_i)
     return -e
 #grad_E = jax.vmap(jax.grad(E))  # ベクトル化された導関数
+
 
 W = jnp.array([[ 1,-1, 1],
                [-1, 1, 1]], dtype=jnp.float32)
@@ -57,6 +58,7 @@ calc_force_v = jax.vmap(calc_force, in_axes=(None, 0), out_axes=0)  # ([d], [n,d
 # 全粒子同士の相互作用を計算
 calc_force_all = jax.vmap(calc_force_v, in_axes=(0, None), out_axes=0)  # ([n,d], [d]) -> [n,n,d]
 
+
 def total_force(x: ArrayLike) -> Array:
     """
     各粒子に働く合力を計算（自己相互作用を除く）
@@ -66,7 +68,6 @@ def total_force(x: ArrayLike) -> Array:
     mask = 1 - jnp.eye(n, dtype=bool)  # shape: (n, n)
     forces = forces * mask[:, :, None]  # 自己相互作用を除外
     return forces.sum(axis=1) / n  # shape: (n, d)  平均斥力を計算
-
 
 
 def stimulation_force(xs: ArrayLike, target: ArrayLike) -> Array:
@@ -80,7 +81,6 @@ def stimulation_force(xs: ArrayLike, target: ArrayLike) -> Array:
     target = jnp.asarray(target)
     vec = target[None, :] - xs
     return jnp.nan_to_num(vec, nan=0.0)
-
 
 
 # scan(vmap)形式：scanの中でvmapを使い、全粒子を一括更新
@@ -97,7 +97,6 @@ def step_fn(xs: ArrayLike, target: ArrayLike) -> tuple[Array, Array]:
     # 勾配降下 + 斥力作用 + 入力刺激
     xs_new = xs - learning_rate * grad + alpha * interaction# + beta * stimulation
     return xs_new, xs_new
-
 
 
 if __name__ == "__main__":

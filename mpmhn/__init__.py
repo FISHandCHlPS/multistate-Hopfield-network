@@ -1,2 +1,5 @@
-from . import energy
-from . import interaction
+from . import (
+    energy,
+    interaction,
+    plot_particle_images
+)

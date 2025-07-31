@@ -6,15 +6,9 @@ Energy.py
 import jax.numpy as jnp
 from numpy.typing import ArrayLike
 from jax import Array
-from plot import plotEnergySurface
 
 
-W = jnp.array([[ 1,-1, 1],
-               [-1, 1, 1]])
-beta = 3.0
-
-
-def CMHN_Energy(x: ArrayLike, W: ArrayLike = W, beta: float = beta) -> Array:
+def CMHN_Energy(x: ArrayLike, W: ArrayLike, beta: float = 1.0) -> Array:
     """
     CMHNモデルのエネルギーを計算します。
 
@@ -37,21 +31,27 @@ def CMHN_Energy(x: ArrayLike, W: ArrayLike = W, beta: float = beta) -> Array:
     return E
 
 
-def DAM_Energy(x: ArrayLike, W: ArrayLike = W) -> Array:
+def DAM_Energy(x: ArrayLike, W: ArrayLike, n: int = 2) -> Array:
     """
     DAMモデルのエネルギーを計算します。
 
     Args:
         x (ArrayLike): 離散値の状態ベクトル
         W (ArrayLike): 重み行列
-
+        n (int): 指数
     Returns:
         Array: エネルギー値(スカラー)
     """
-    E = -jnp.sum(jnp.exp(W.T @ x))
+    E = -jnp.sum(jnp.power(W.T @ x, n))
     return E
 
+
 if __name__ == "__main__":
-    plotEnergySurface(CMHN_Energy, -5, 5, -5, 5, 20)
+    #from ..plot2d.plot import plotEnergySurface
+    W = jnp.array([[ 1,-1, 1],
+                   [-1, 1, 1]])
+    beta = 1.0
+    n = 2
+
+    #plotEnergySurface(CMHN_Energy, -5, 5, -5, 5, 20)
     #plotEnergySurface(DAM_Energy, -10, 10, -10, 10, 100)
-    
