@@ -20,7 +20,7 @@ F = \frac{1}{ N d(x_i, x_j) }
 
 エネルギー関数
 ```math
-lse(\beta, x) = \ln \sum \exp( \beta x )
+lse(\beta, x) = \beta^{-1} \ln \sum \exp( \beta x )
 ```
 ```math
 E(x) = -lse(\beta, W^T x) + \frac{1}{2} x^T x + C
@@ -30,4 +30,3 @@ E(x) = -lse(\beta, W^T x) + \frac{1}{2} x^T x + C
 x_i \leftarrow x_i + \alpha \nabla E + \frac{1}{N} \sum_{j \neq i} \frac{ (x_i - x_j) }{ \|x_i - x_j\|^c }
 ```
 $\alpha=1$のときCCCPと等価
-SGDの場合はスケールがβ倍される
