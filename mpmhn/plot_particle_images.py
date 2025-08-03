@@ -42,8 +42,9 @@ def plot_particle_image_slider(history):
         step['label'] = steps_labels[k]
 
     fig.update_layout(title="Particle Images (t, particle)")
-    fig.write_html("test_output_express.html")
+    fig.write_html("../output/recall_images.html")
     fig.show()
+
 
 def plot_img(image):
     fig = px.imshow(
@@ -51,7 +52,7 @@ def plot_img(image):
         color_continuous_scale="gray"
     )
     fig.update_layout(title="memory image")
-    fig.write_html("memory.html")
+    fig.write_html("../output/memory.html")
     fig.show()
 
 

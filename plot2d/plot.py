@@ -76,7 +76,7 @@ def animationTrajectory(history: ArrayLike, interval: int=10):
         height=600,
     )
     fig.show()
-    fig.write_html("animation.html")
+    fig.write_html('../output/animation.html')
 
 
 def arrayToDataFrame(history: ArrayLike, interval: int=10):
