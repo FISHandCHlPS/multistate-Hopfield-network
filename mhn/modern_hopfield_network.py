@@ -13,7 +13,7 @@ import jax.lax
 import jax.random
 import matplotlib.pyplot as plt
 import random
-from cifar100 import get_cifar100
+from .cifar100 import get_cifar100
 
 
 def flatten_images(images: Array) -> Array:

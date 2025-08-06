@@ -1,5 +1,9 @@
 import numpy as np
 import plotly.express as px
+import pandas as pd
+from sklearn.decomposition import PCA
+import os
+
 
 def to_uint8(img):
     """
@@ -42,7 +46,7 @@ def plot_particle_image_slider(history):
         step['label'] = steps_labels[k]
 
     fig.update_layout(title="Particle Images (t, particle)")
-    fig.write_html("../output/recall_images.html")
+    fig.write_html("./output/recall_images.html")
     fig.show()
 
 
@@ -52,7 +56,26 @@ def plot_img(image):
         color_continuous_scale="gray"
     )
     fig.update_layout(title="memory image")
-    fig.write_html("../output/memory.html")
+    fig.write_html("./output/memory.html")
+    fig.show()
+
+
+def plot_pca_images(image_array: np.ndarray, n_components: int = 2) -> None:
+    """
+    画像配列をPCAで次元削減し、散布図としてプロットする。
+
+    Args:
+        image_array (np.ndarray): 画像配列 (画像数, 画像1枚の次元数)
+        n_components (int): 主成分数（デフォルト2）
+
+    Returns:
+        None
+    """
+    pca = PCA(n_components=n_components)
+    reduced = pca.fit_transform(image_array)
+    df = pd.DataFrame(reduced, columns=[f'PC{i+1}' for i in range(n_components)])
+    fig = px.scatter(df, x='PC1', y='PC2', title='PCA of Images', width=800, height=600)
+    fig.write_html("./output/pca.html")
     fig.show()
 
 
@@ -70,6 +93,19 @@ def test_plot_particle_image_slider():
     plot_particle_image_slider(history)
 
 
+def test_plot_pca_images() -> None:
+    """
+    plot_pca_images関数のテスト用関数。
+    ダミーデータ（10枚、各画像1024次元）で呼び出し動作を確認。
+    """
+    num_images = 10
+    dim = 1024
+    np.random.seed(0)
+    dummy_images = np.random.rand(num_images, dim)
+    plot_pca_images(dummy_images)
+
+
 # テスト実行用
 if __name__ == "__main__":
-    test_plot_particle_image_slider()
+    # test_plot_particle_image_slider()
+    test_plot_pca_images()
