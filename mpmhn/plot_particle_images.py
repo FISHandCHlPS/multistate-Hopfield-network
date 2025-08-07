@@ -60,22 +60,68 @@ def plot_img(image):
     fig.show()
 
 
-def plot_pca_images(image_array: np.ndarray, n_components: int = 2) -> None:
+def plot_pca_images(image_array: np.ndarray) -> None:
     """
     画像配列をPCAで次元削減し、散布図としてプロットする。
 
     Args:
         image_array (np.ndarray): 画像配列 (画像数, 画像1枚の次元数)
-        n_components (int): 主成分数（デフォルト2）
 
     Returns:
         None
     """
-    pca = PCA(n_components=n_components)
+    pca = PCA()
     reduced = pca.fit_transform(image_array)
-    df = pd.DataFrame(reduced, columns=[f'PC{i+1}' for i in range(n_components)])
+    explained_var = pca.explained_variance_ratio_
+    print(f"寄与率: {explained_var}")
+    print(f"第二主成分までの累積寄与率: {np.sum(explained_var[:2])}")
+    df = pd.DataFrame(reduced, columns=[f'PC{i+1}' for i in range(reduced.shape[1])])
     fig = px.scatter(df, x='PC1', y='PC2', title='PCA of Images', width=800, height=600)
     fig.write_html("./output/pca.html")
+    fig.show()
+
+
+def plot_pca_images_trajectory(history: np.ndarray) -> None:
+    """
+    PCAし、粒子ごとの軌跡を可視化する。
+
+    Args:
+        history (np.ndarray): 画像配列 (steps, num_particles, 画像次元)
+
+    Returns:
+        None
+    """
+    steps, num_particles, dim = history.shape
+    pca = PCA(n_components=2)
+    reduced = pca.fit_transform(history.reshape(-1, dim))
+    explained_var = pca.explained_variance_ratio_
+    print(f"第二主成分までの累積寄与率: {np.sum(explained_var[:2])}")
+    
+    records = []
+    for t in range(steps):
+        for p in range(num_particles):
+            records.append({
+                't': t,
+                'particle': p,
+                'PC1': reduced[t*num_particles + p, 0],
+                'PC2': reduced[t*num_particles + p, 1],
+            })
+    df = pd.DataFrame(records)
+
+    fig = px.scatter(
+        df,
+        x='PC1',
+        y='PC2',
+        color='particle',
+        animation_group='particle',
+        animation_frame='t',
+        range_x=[-1, 1],
+        range_y=[-1, 1],
+        title='PCA Trajectory of Particles',
+        width=800,
+        height=600
+    )
+    fig.write_html("./output/pca_trajectory.html")
     fig.show()
 
 
@@ -101,8 +147,8 @@ def test_plot_pca_images() -> None:
     num_images = 10
     dim = 1024
     np.random.seed(0)
-    dummy_images = np.random.rand(num_images, dim)
-    plot_pca_images(dummy_images)
+    dummy_images = np.random.rand(5, num_images, dim)
+    plot_pca_images_trajectory(dummy_images)
 
 
 # テスト実行用

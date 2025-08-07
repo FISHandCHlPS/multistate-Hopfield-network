@@ -11,16 +11,17 @@ from mpmhn.energy import CMHN_Energy
 from mpmhn.interaction import total_force
 from jax.tree_util import Partial
 from mhn.cifar100 import get_cifar100
-from mpmhn.plot_particle_images import plot_particle_image_slider, plot_img, plot_pca_images
+from mpmhn.plot_particle_images import plot_particle_image_slider, plot_img, plot_pca_images_trajectory, plot_pca_images
+
 
 # 粒子数やパラメータ設定
-num_particles = 10
+num_particles = 10  # 粒子数
 key = random.PRNGKey(42)
 learning_rate = 1 # 学習率
-gamma = 0.1   # 斥力の強さ
-c = 1.0  # 斥力指数
+gamma = 0.5   # 斥力の強さ
+c = 2.0  # 斥力指数
 beta = 100.0  # CMHNの逆温度
-steps = 20 # 合計ステップ数
+steps = 30 # 合計ステップ数
 
 # CIFAR画像を読み込み
 images, labels, class_names = get_cifar100()  # images: (100, 1, 32, 32)
@@ -36,6 +37,7 @@ random_index = 0#random.choice(img_key, images_flat.shape[0])
 base_img = images_flat[random_index]  # (1024)
 noise = random.normal(noise_key, shape=(num_particles, base_img.shape[0])) * 0.001  # ノイズ強度は適宜調整
 initial = base_img + noise  # (num_particles, 1024)
+
 
 # CMHNのエネルギー関数
 E_CMHN = Partial(CMHN_Energy, W=W, beta=beta)
@@ -64,8 +66,7 @@ if __name__ == "__main__":
     print('computed')
 
 
-    plot_pca_images(history[0, :, :])
-    plot_pca_images(history[-1, :, :])
+    plot_pca_images_trajectory(history)
     # plot_img(base_img.reshape(32, 32))
     # plot_img(initial[0].reshape(32, 32))
-    # plot_particle_image_slider(history)
+    plot_particle_image_slider(history)
