@@ -11,17 +11,17 @@ from mpmhn.energy import CMHN_Energy
 from mpmhn.interaction import total_force
 from jax.tree_util import Partial
 from mhn.cifar100 import get_cifar100
-from mpmhn.plot_particle_images import plot_particle_image_slider, plot_similarity_trajectory
+from mpmhn.plot_particle_images import plot_particle_image_slider, plot_similarity_trajectory, plot_img, plot_pca_images_trajectory
 
 
 # 粒子数やパラメータ設定
-num_particles = 100  # 粒子数
+num_particles = 20  # 粒子数
 key = random.PRNGKey(42)
 learning_rate = 1 # 学習率
 gamma = 0.1   # 斥力の強さ
 c = 2.0  # 斥力指数
 beta = 100.0  # CMHNの逆温度
-steps = 50 # 合計ステップ数
+steps = 20 # 合計ステップ数
 
 # CIFAR画像を読み込み
 images, labels, class_names = get_cifar100()  # images: (100, 1, 32, 32)
@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
 
     # plot_pca_images_trajectory(history)
-    plot_similarity_trajectory(history, images_flat)
-    # plot_img(base_img.reshape(32, 32))
-    # plot_img(initial[0].reshape(32, 32))
+    # plot_similarity_trajectory(history, images_flat)
+    plot_img(base_img.reshape(32, 32))
+    plot_img(initial[0].reshape(32, 32))
     plot_particle_image_slider(history)

@@ -2,7 +2,6 @@ import numpy as np
 import plotly.express as px
 import pandas as pd
 from sklearn.decomposition import PCA
-import os
 
 
 def to_uint8(img):
@@ -21,29 +20,27 @@ def plot_particle_image_slider(history):
     history: (steps+1, num_particles, 1024)
     """
     steps, num_particles, dim = history.shape
-    xs = np.asarray(history)
+    xs = history.reshape(steps, num_particles, 32, 32)
 
-    images = []
-    t_list = []
-    p_list = []
-    img = xs#to_uint8(xs)
-    for t in range(steps):
-        for i in range(num_particles):
-            images.append(img[t, i].reshape(32, 32))
-            t_list.append(t)
-            p_list.append(i)
-    images = np.stack(images, axis=0)  # (num_images, 32, 32)
+    # images = []
+    # t_list = []
+    # p_list = []
+    # img = xs
+    # for t in range(steps):
+    #     for i in range(num_particles):
+    #         images.append(img[t, i].reshape(32, 32))
+    #         t_list.append(t)
+    #         p_list.append(i)
+    # images = np.stack(images, axis=0)  # (num_images, 32, 32)
 
     fig = px.imshow(
-        images,
+        xs,
         animation_frame=0,
-        labels={"animation_frame": "index"},
-        binary_string=False,
-        color_continuous_scale="gray"
+        facet_col=1,
+        facet_col_wrap=4,
+        binary_string=True,
+        labels={"animation_frame": "t", "facet_col": "particle"},
     )
-    steps_labels = [f"t={t},p={p}" for t, p in zip(t_list, p_list)]
-    for k, step in enumerate(fig.layout.sliders[0]['steps']):
-        step['label'] = steps_labels[k]
 
     fig.update_layout(title="Particle Images (t, particle)")
     fig.write_html("./output/recall_images.html")
@@ -53,7 +50,8 @@ def plot_particle_image_slider(history):
 def plot_img(image):
     fig = px.imshow(
         image,
-        color_continuous_scale="gray"
+        binary_string=True,
+        #color_continuous_scale="gray"
     )
     fig.update_layout(title="memory image")
     fig.write_html("./output/memory.html")
@@ -145,7 +143,15 @@ def sort_history_by_similarity(
     # コサイン類似度（全履歴・全粒子・全比較画像）
     history_norm = history_images / (np.linalg.norm(history_images, axis=2, keepdims=True) + 1e-10)
     memory_norm = memory_images / (np.linalg.norm(memory_images, axis=1, keepdims=True) + 1e-10)
-    sim_matrix = history_norm @ memory_norm.T  # (T, N, M)
+    cos_matrix = history_norm @ memory_norm.T  # (T, N, M)
+
+    # PSNR行列の計算（全履歴・全粒子・全比較画像）
+    MAX_I = 1.0
+    mse = ((history_images[:, :, None, :] - memory_images[None, None, :, :]) ** 2).mean(axis=3)  # (T, N, M)
+    psnr_matrix = 10 * np.log10(MAX_I ** 2 / (mse + 1e-10))  # (T, N, M)
+
+    sim_matrix = cos_matrix
+    #sim_matrix = psnr_matrix
 
     # 履歴内で最大となる類似度（N, M）
     memory_sim = np.max(sim_matrix, axis=0)  # (N, M)
@@ -198,6 +204,7 @@ def plot_similarity_trajectory(history_images: np.ndarray, memory_images: np.nda
         height=600
     )
     fig.show()
+    fig.write_html("./output/similarity_trajectory.html")
 
 
 def test_plot_similarity_trajectory() -> None:
