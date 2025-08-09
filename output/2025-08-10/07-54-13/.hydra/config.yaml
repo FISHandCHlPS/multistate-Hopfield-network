@@ -1,0 +1,10 @@
+app:
+  name: multistatehnn
+  seed: 42
+paths:
+  project_root: ${oc.env:PROJECT_ROOT,${hydra:runtime.cwd}}
+  data_dir: ${paths.project_root}/data
+  output_dir: ${paths.project_root}/output
+training:
+  epochs: 10
+  lr: 0.001
