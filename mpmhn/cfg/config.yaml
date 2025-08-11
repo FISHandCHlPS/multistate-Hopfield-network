@@ -1,0 +1,30 @@
+# Base config for hydra_test.py
+# Hydra will load this when running hydra_test.py
+
+app:
+  name: multistatehnn
+
+paths:
+  # Prefer PROJECT_ROOT env when set, otherwise use launch CWD
+  project_root: ${oc.env:PROJECT_ROOT,${hydra:runtime.cwd}}
+  data_dir: ${paths.project_root}/data
+  output_dir: ${paths.project_root}/output
+
+params:
+  seed: 42  # seed
+  num_particles: 20  # 粒子数
+  steps: 20  # 合計ステップ数
+  learning_rate: 1  # 学習率
+  beta: 100.0  # CMHNの逆温度
+  gamma: 0.1  # 斥力の強さ
+  c: 2.0  # 斥力指数
+
+hydra:
+  # Keep current working directory; still create run.dir for hydra artifacts
+  job:
+    chdir: false
+  run:
+    dir: ${paths.output_dir}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: ${paths.output_dir}/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

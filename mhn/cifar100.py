@@ -44,6 +44,7 @@ def show_images(images: ArrayLike, labels: ArrayLike, class_names: list[str]) ->
     )
     plt.show()
 
+
 def pytorch_to_jax(tensor_batch: 'torch.Tensor') -> Array:
     """
     PyTorchのテンソルをJAXのndarrayに変換する。
@@ -56,6 +57,7 @@ def pytorch_to_jax(tensor_batch: 'torch.Tensor') -> Array:
     numpy_batch = tensor_batch.detach().cpu().numpy()
     jax_batch = jnp.array(numpy_batch)
     return jax_batch
+
 
 def get_cifar100() -> Tuple[Array, Array, list[str]]:
     """

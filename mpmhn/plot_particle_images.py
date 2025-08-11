@@ -3,17 +3,6 @@ import plotly.express as px
 import pandas as pd
 from sklearn.decomposition import PCA
 
-
-def to_uint8(img):
-    """
-    正規化してuint8に変換
-    """
-    img = np.asarray(img)
-    if img.min() < 0 or img.max() > 1:
-        img = (img - img.min()) / (img.max() - img.min())
-    img = (img * 255).astype(np.uint8)
-    return img
-
 def plot_particle_image_slider(history):
     """
     plotly.expressで、時刻・粒子ごとにhistoryの各ベクトルを32x32画像として切り替え表示
@@ -21,17 +10,6 @@ def plot_particle_image_slider(history):
     """
     steps, num_particles, dim = history.shape
     xs = history.reshape(steps, num_particles, 32, 32)
-
-    # images = []
-    # t_list = []
-    # p_list = []
-    # img = xs
-    # for t in range(steps):
-    #     for i in range(num_particles):
-    #         images.append(img[t, i].reshape(32, 32))
-    #         t_list.append(t)
-    #         p_list.append(i)
-    # images = np.stack(images, axis=0)  # (num_images, 32, 32)
 
     fig = px.imshow(
         xs,
@@ -50,8 +28,7 @@ def plot_particle_image_slider(history):
 def plot_img(image):
     fig = px.imshow(
         image,
-        binary_string=True,
-        #color_continuous_scale="gray"
+        binary_string=True
     )
     fig.update_layout(title="memory image")
     fig.write_html("./output/memory.html")

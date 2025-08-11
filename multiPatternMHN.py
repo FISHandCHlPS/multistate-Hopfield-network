@@ -7,9 +7,12 @@ import jax
 import jax.numpy as jnp
 from jax import Array, random, lax
 from jax.typing import ArrayLike
+from jax.tree_util import Partial
+import hydra
+from omegaconf import DictConfig
+
 from mpmhn.energy import CMHN_Energy
 from mpmhn.interaction import total_force
-from jax.tree_util import Partial
 from mhn.cifar100 import get_cifar100
 from mpmhn.plot_particle_images import plot_particle_image_slider, plot_similarity_trajectory, plot_img, plot_pca_images_trajectory
 
@@ -23,20 +26,44 @@ c = 2.0  # 斥力指数
 beta = 100.0  # CMHNの逆温度
 steps = 20 # 合計ステップ数
 
-# CIFAR画像を読み込み
-images, labels, class_names = get_cifar100()  # images: (100, 1, 32, 32)
-images_flat = images.reshape(images.shape[0], -1)  # (100, 1024)
-images_flat = images_flat / jnp.linalg.norm(images_flat, axis=1, keepdims=True)  # 各画像を正規化
 
-# 画像ベクトルを列ベクトルとして100個並べた行列を重みとする（1024, 100）
-W = images_flat.T  # (1024, 100)
+def load_Weights():
+    """
+    重みを生成する。
 
-# 初期値: ランダムに選んだ画像＋ノイズ
-img_key, noise_key = random.split(key)
-random_index = 0#random.choice(img_key, images_flat.shape[0])
-base_img = images_flat[random_index]  # (1024)
-noise = random.normal(noise_key, shape=(num_particles, base_img.shape[0])) * 0.001  # ノイズ強度は適宜調整
-initial = base_img + noise  # (num_particles, 1024)
+    Returns:
+        W: 重み行列( jax.Array, shape=(dim, num_patterns) )
+    """
+    # CIFAR画像を読み込み
+    images, labels, class_names = get_cifar100()  # images: (100, 1, 32, 32)
+    images_flat = images.reshape(images.shape[0], -1)  # (100, 1024)
+    images_flat = images_flat / jnp.linalg.norm(images_flat, axis=1, keepdims=True)  # 各画像を正規化
+
+    # 画像ベクトルを列ベクトルとして100個並べた行列を重みとする(1024, 100)
+    W = images_flat.T
+    return W
+
+
+def create_initial_params(W: ArrayLike, num_particles: int = 1, seed: int = 42):
+    """
+    初期値を生成する。
+
+    Args:
+        W (ArrayLike): 重み行列
+        num_particles (int): 粒子数
+        seed (int): 乱数シード
+
+    Returns:
+        initial: 初期値( jax.Array, shape=(num_particles, dim) )
+    """
+
+    # 初期値: ランダムに選んだ画像＋ノイズ
+    img_key, noise_key = random.split(random.PRNGKey(seed))
+    random_index = 0#random.choice(img_key, images_flat.shape[0])
+    base_img = W[:, random_index]  # (1024)
+    noise = random.normal(noise_key, shape=(num_particles, base_img.shape[0])) * 0.001  # ノイズ強度は適宜調整
+    initial = base_img + noise  # (num_particles, 1024)
+    return initial
 
 
 # CMHNのエネルギー関数
@@ -57,14 +84,25 @@ def step_fn(xs: ArrayLike, _=None) -> tuple[Array, Array]:
     return xs_new, xs_new
 
 
-if __name__ == "__main__":
-    xs_init = initial   # 初期値
+@hydra.main(config_path="./mpmhn/cfg", config_name="config", version_base=None)
+def run(cfg: DictConfig):
+    """
+    実行関数。
+    """
+    params = cfg.params
 
-    _, history = lax.scan(step_fn, xs_init, length=steps)     # history: (steps, num_particles, dim)
+    W = load_Weights()  # 重み生成
+    initial = create_initial_params(W, num_particles=params.num_particles, seed=params.seed)    # 初期値
+
+    _, history = lax.scan(step_fn, initial, length=params.steps)     # history: (steps, num_particles, dim)
     # 初期値も履歴に含める
-    history = jnp.concatenate([xs_init[None, :], history], axis=0)  # (steps+1, num_particles, dim)
-    print('computed')
+    history = jnp.concatenate([initial[None, :], history], axis=0)  # (steps+1, num_particles, dim)
+    return history
 
+
+if __name__ == "__main__":
+    history = run()
+    print('computed')
 
     # plot_pca_images_trajectory(history)
     # plot_similarity_trajectory(history, images_flat)
