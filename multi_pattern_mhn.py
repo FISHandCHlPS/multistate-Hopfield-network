@@ -13,7 +13,7 @@ from omegaconf import DictConfig
 
 from calc.mpmhn import CMHN_Energy, total_force
 from resource.cifar100 import get_cifar100
-from plot.plot_particle_images import plot_particle_image_slider, plot_similarity_trajectory, plot_img, plot_pca_images_trajectory
+from plot.images import plot_images_trajectory, plot_image
 
 
 # 粒子数やパラメータ設定
@@ -94,9 +94,9 @@ def run(cfg: DictConfig) -> Array:
     output_path = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
     jnp.save(output_path + '/history.npy', history)
 
-    plot_img(weight[:, 0].reshape(32, 32))
-    plot_img(initial[0].reshape(32, 32))
-    plot_particle_image_slider(history)
+    # plot_image(weight[:, 0].reshape(32, 32))
+    # plot_image(initial[0].reshape(32, 32))
+    # plot_images_trajectory(history)
 
 
 if __name__ == "__main__":

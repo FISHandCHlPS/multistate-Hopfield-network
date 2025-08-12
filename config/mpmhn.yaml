@@ -16,7 +16,6 @@ defaults:
 hydra:
   job:
     chdir: false  # 作業ディレクトリを変更しない
-  output_subdir: null   # hydraのログを作らない
 
   run:
     dir: ./output/${hydra.job.name}/${now:%Y-%m-%d}/${now:%H-%M-%S}  # 出力ディレクトリ
@@ -24,7 +23,7 @@ hydra:
   # multirun用の設定
   sweeper:
     params:
-      seed: range(10)
+      seed: range(2)
       num_particles: 20
       steps: 50
       learning_rate: 1
