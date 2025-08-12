@@ -4,9 +4,12 @@ import jax.lax as lax
 from jax import Array
 from jax.typing import ArrayLike
 from jax import random
-from plot2d.plot import animationTrajectory
-from mpmhn.energy import CMHN_Energy
 from jax.tree_util import Partial
+
+from plot.plot2d import plotTrajectory, plotEnergySurface, animationTrajectory
+from calc.mpmhn import CMHN_Energy
+from resource.cifar100 import get_cifar100
+
 
 # 初期値やパラメータ
 num_particles = 50      # 並列化する粒子数
