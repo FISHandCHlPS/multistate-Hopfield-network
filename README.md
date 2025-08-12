@@ -33,20 +33,23 @@ x_i \leftarrow x_i + \alpha \nabla E + 相互作用
 
 ## ディレクトリ構成
 ### コード
-multistate_hnn: メイン. 多粒子MHNの実装.
-toy: 2次元モデル
-modern_hopfield_network: モダンホップフィールドネットワーク
+multistate_hnn: メイン. 多粒子MHNの実装.  
+toy: 2次元モデル  
+modern_hopfield_network: モダンホップフィールドネットワーク  
 
 ### ディレクトリ
-calc: 計算用のコード
-plot: 可視化用のコード
-config: 設定ファイル
-resources: データ＆ローダー
+calc: 計算用のコード  
+plot: 可視化用のコード  
+config: 設定ファイル  
+resources: データ＆ローダー  
+output: 出力  
 
 
-# 以下詳細を書く
-## 単純モデル
+## 以下詳細を書く
+
+### 単純モデル
 低次元空間での挙動を調べる
+
 ### 方法
 エネルギー関数を定義したとき、エネルギーを最小にする状態を見つける。様々な初期値から始める。ただし、各粒子は相互作用する。  
 
