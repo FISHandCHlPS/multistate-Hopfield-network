@@ -42,6 +42,7 @@ calc: 計算用のコード
 plot: 可視化用のコード  
 config: 設定ファイル  
 resources: データ＆ローダー  
+output: 出力  
 
 
 ## 以下詳細を書く
