@@ -20,7 +20,7 @@ def array2df(arr: np.ndarray) -> pd.DataFrame:
             range(arr.shape[0]), 
             range(arr.shape[1])
         ], names=['t', 'particles']),
-        columns=[f'dim_{i}' for i in range(arr.shape[-1])]
+        columns=[f'entry_{i}' for i in range(arr.shape[-1])]
     )
     return df
 

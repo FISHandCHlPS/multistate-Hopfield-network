@@ -4,6 +4,7 @@
 import numpy as np
 import plotly.express as px
 import pandas as pd
+from plot.utils import array2df
 
 
 def sort_history_by_similarity(
@@ -58,17 +59,8 @@ def plot_similarity_trajectory(history_images: np.ndarray, memory_images: np.nda
     topk_scores, _ = sort_history_by_similarity(history_images, memory_images, top_k=2)
 
     # データをロング形式のDataFrameに整形
-    records = []
-    for t in range(T):
-        for n in range(N):
-            records.append({
-                't': t,
-                'particle': f'粒子{n}',
-                'top1': topk_scores[t, n, 0],
-                'top2': topk_scores[t, n, 1]
-            })
+    df = array2df(topk_scores)
 
-    df = pd.DataFrame(records)
     fig = px.line(
         df,
         x='top1',

@@ -6,32 +6,53 @@ import plotly.express as px
 import pandas as pd
 from sklearn.decomposition import PCA
 
-def plot_pca_images(image_array: np.ndarray, path: str='output', filename: str='pca.html') -> None:
+
+def plot_pca_feature(
+    history: np.ndarray,
+    k: int = 6,
+    img_shape: tuple[int, int] = (32, 32),
+    path: str = 'output',
+    filename: str = 'pca_feature.html'
+) -> None:
     """
-    画像配列をPCAで次元削減し、散布図としてプロットする。
+    PCAの主成分ベクトル（=画像）をk個可視化する。
 
     Args:
-        image_array (np.ndarray): 画像配列 (画像数, 画像1枚の次元数)
+        history (np.ndarray): 履歴配列 (steps, num_particles, 画像次元)
+        k (int, optional): 可視化する主成分の個数。Defaults to 4.
+        img_shape (tuple[int, int], optional): 画像の(H, W)。Defaults to (32, 32)。
         path (str, optional): 出力先のパス。Defaults to 'output'。
-        filename (str, optional): 出力ファイル名。Defaults to 'pca.html'。
+        filename (str, optional): 出力ファイル名。Defaults to 'pca_feature.html'。
 
     Returns:
         None
     """
-    pca = PCA()
-    reduced = pca.fit_transform(image_array)
-    explained_var = pca.explained_variance_ratio_
-    print(f"寄与率: {explained_var}")
-    print(f"第二主成分までの累積寄与率: {np.sum(explained_var[:2])}")
-    df = pd.DataFrame(reduced, columns=[f'PC{i+1}' for i in range(reduced.shape[1])])
-    fig = px.scatter(df, x='PC1', y='PC2', title='PCA of Images', width=800, height=600)
+    _, _, dim = history.shape
+    h, w = img_shape
+    if h * w != dim:
+        raise ValueError(f"img_shape {img_shape} の画素数 {h*w} と特徴次元 {dim} が一致しません")
+
+    pca = PCA(n_components=k)
+    pca.fit(history.reshape(-1, dim))  # 履歴全体で学習
+    features = pca.components_  # (k, dim)
+
+    images = features.reshape(k, h, w)
+
+    fig = px.imshow(
+        images,
+        facet_col=0,
+        facet_col_wrap=3,
+        binary_string=True,
+        labels={"facet_col": "PC"},
+    )
+    fig.update_layout(title=f"PCA Components (k={k}) as Images")
     fig.write_html(f"{path}/{filename}")
     fig.show()
 
 
-def plot_pca_images_trajectory(history: np.ndarray, path: str='output', filename: str='pca_trajectory.html') -> None:
+def plot_pca_trajectory(history: np.ndarray, path: str='output', filename: str='pca_trajectory.html') -> None:
     """
-    PCAし、粒子ごとの軌跡を可視化する。
+    画像群をPCAし、粒子ごとの軌跡を可視化する。
 
     Args:
         history (np.ndarray): 画像配列 (steps, num_particles, 画像次元)
@@ -47,23 +68,20 @@ def plot_pca_images_trajectory(history: np.ndarray, path: str='output', filename
     explained_var = pca.explained_variance_ratio_
     print(f"第二主成分までの累積寄与率: {np.sum(explained_var[:2])}")
     
-    records = []
-    for t in range(steps):
-        for p in range(num_particles):
-            records.append({
-                't': t,
-                'particle': p,
-                'PC1': reduced[t*num_particles + p, 0],
-                'PC2': reduced[t*num_particles + p, 1],
-            })
-    df = pd.DataFrame(records)
+    df = pd.DataFrame(reduced, columns=[f'PC{i+1}' for i in range(2)])
+    idx = pd.MultiIndex.from_product([
+        range(steps), 
+        range(num_particles)
+    ], names=['t', 'particles'])
+    df.index = idx
+    df = df.reset_index()
 
     fig = px.scatter(
         df,
         x='PC1',
         y='PC2',
-        color='particle',
-        animation_group='particle',
+        color='particles',
+        animation_group='particles',
         animation_frame='t',
         range_x=[-1, 1],
         range_y=[-1, 1],
@@ -73,3 +91,31 @@ def plot_pca_images_trajectory(history: np.ndarray, path: str='output', filename
     )
     fig.write_html(f"{path}/{filename}")
     fig.show()
+
+
+def plot_pca_ccr(history: np.ndarray, path: str='output', filename: str='pca_ccr.html') -> None:
+    """
+    画像群をPCAし、粒子ごとの累積寄与率を可視化する。
+
+    Args:
+        history (np.ndarray): 画像配列 (steps, num_particles, 画像次元)
+        path (str, optional): 出力先のパス。Defaults to 'output'。
+        filename (str, optional): 出力ファイル名。Defaults to 'pca_ccr.html'。
+
+    Returns:
+        None
+    """
+    _, _, dim = history.shape
+    pca = PCA(n_components=20)
+    pca.fit(history.reshape(-1, dim))  # 履歴全体で学習
+    explained_var = pca.explained_variance_ratio_
+    ccr = np.cumsum(explained_var)
+    
+    df = pd.DataFrame(ccr, columns=['CCR'])
+    fig = px.line(df, x=df.index, y='CCR', title='PCA CCR of Particles', width=800, height=600)
+    fig.write_html(f"{path}/{filename}")
+    fig.show()
+
+
+# マルチランでどうやって可視化するか？
+# 累積寄与率が一定以上になるnを求めてヒストグラム

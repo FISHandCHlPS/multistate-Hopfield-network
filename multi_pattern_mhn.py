@@ -14,6 +14,7 @@ from omegaconf import DictConfig
 from calc.mpmhn import CMHN_Energy, total_force
 from resource.cifar100 import get_cifar100
 from plot.images import plot_images_trajectory, plot_image
+from plot.pca import plot_pca_feature, plot_pca_trajectory, plot_pca_ccr
 
 
 # 粒子数やパラメータ設定
@@ -96,7 +97,11 @@ def run(cfg: DictConfig) -> Array:
 
     # plot_image(weight[:, 0].reshape(32, 32))
     # plot_image(initial[0].reshape(32, 32))
-    # plot_images_trajectory(history)
+    plot_images_trajectory(history)
+
+    plot_pca_feature(history)
+    # plot_pca_trajectory(history)
+    plot_pca_ccr(history)
 
 
 if __name__ == "__main__":
