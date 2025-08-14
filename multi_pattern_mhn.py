@@ -82,7 +82,7 @@ def run(cfg: DictConfig) -> Array:
     # xs: 粒子の現在の状態( jax.Array, shape=(num_particles, dim) )
     def step_fn(xs: ArrayLike, _=None) -> tuple[Array, Array]:
         grad = grad_E(xs)   # shape(粒子数、次元数): 勾配
-        interaction = total_force(xs, exponent=cfg.c, f_max=10.0)    # shape(粒子数、次元数): 斥力
+        interaction = total_force(xs, exponent=cfg.c, f_max=cfg.f_max)    # shape(粒子数、次元数): 斥力
         # 勾配降下 + 斥力作用
         xs_new = xs - cfg.learning_rate * grad + cfg.gamma * interaction
         return xs_new, xs_new   # (新しいxs, 記録用xs) のタプル

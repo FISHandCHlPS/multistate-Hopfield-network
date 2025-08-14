@@ -8,6 +8,7 @@ learning_rate: 1 # 学習率
 gamma: 0.1   # 斥力の強さ
 c: 2.0  # 斥力指数
 beta: 100.0  # CMHNの逆温度
+f_max: 10.0  # 斥力の最大値
 
 defaults:
   - override hydra/job_logging: disabled
@@ -30,6 +31,7 @@ hydra:
       gamma: 0.1
       c: 2.0
       beta: 100.0
+      f_max: 10.0
   sweep:
     dir: ./output/${hydra.job.name}/multirun  # multirun用の出力ディレクトリ
     subdir: lr=${learning_rate},gamma=${gamma},c=${c},beta=${beta}/seed=${seed}  
