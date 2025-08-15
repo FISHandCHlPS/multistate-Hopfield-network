@@ -1,7 +1,6 @@
 import numpy as np
 import plotly.express as px
-import pandas as pd
-from sklearn.decomposition import PCA
+
 
 def plot_images_trajectory(history: np.ndarray, path: str='output', filename: str='recall_images.html') -> None:
     """
@@ -15,12 +14,17 @@ def plot_images_trajectory(history: np.ndarray, path: str='output', filename: st
         xs,
         animation_frame=0,
         facet_col=1,
-        facet_col_wrap=4,
+        facet_col_wrap=5,
+        facet_col_spacing=0.1,
         binary_string=True,
         labels={"animation_frame": "t", "facet_col": "particle"},
+        title="Particle Images (t, particle)",
+        width=1000,
+        aspect="auto"
     )
 
-    fig.update_layout(title="Particle Images (t, particle)")
+    fig.update_xaxes(showticklabels=False)
+    fig.update_yaxes(showticklabels=False)
     fig.write_html(f"{path}/{filename}")
     fig.show()
 
@@ -36,8 +40,8 @@ def plot_image(image: np.ndarray, path: str='output', filename: str='memory.html
     """
     fig = px.imshow(
         image,
-        binary_string=True
+        binary_string=True,
+        title="memory image"
     )
-    fig.update_layout(title="memory image")
     fig.write_html(f"{path}/{filename}")
     fig.show()

@@ -99,9 +99,9 @@ def run(cfg: DictConfig) -> Array:
     # plot_image(initial[0].reshape(32, 32))
     plot_images_trajectory(history)
 
-    plot_pca_feature(history)
+    # plot_pca_feature(history)
     # plot_pca_trajectory(history)
-    plot_pca_ccr(history)
+    # plot_pca_ccr(history)
 
 
 if __name__ == "__main__":
