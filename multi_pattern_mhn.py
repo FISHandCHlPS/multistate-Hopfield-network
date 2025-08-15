@@ -93,11 +93,11 @@ def run(cfg: DictConfig) -> Array:
 
     # 結果保存
     output_path = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
-    jnp.save(output_path + '/history.npy', history)
+    jnp.savez(output_path + '/result.npz', history=history, weight=weight, initial=initial)
 
     # plot_image(weight[:, 0].reshape(32, 32))
     # plot_image(initial[0].reshape(32, 32))
-    plot_images_trajectory(history)
+    # plot_images_trajectory(history)
 
     # plot_pca_feature(history)
     # plot_pca_trajectory(history)

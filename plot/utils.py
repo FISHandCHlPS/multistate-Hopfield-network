@@ -27,11 +27,11 @@ def array2df(arr: np.ndarray) -> pd.DataFrame:
 
 def multirun_loader(
     multirun_root: Union[str, Path] = "output/multi_pattern_mhn/multirun",
-    file_name: str = "history.npy",
+    file_name: str = "result.npz",
     isSort: bool = False,
 ) -> List[Dict[str, Any]]:
     """
-    パラメータごとに multirun の結果 (history.npy) を全て読み込む。
+    パラメータごとに multirun の結果 (result.npz) を全て読み込む。
 
     Hydra の multirun 実行で生成されたディレクトリ配下を再帰的に探索し、
     各ランディレクトリに保存された `history.npy` を読み込んで返す。
@@ -41,6 +41,8 @@ def multirun_loader(
         List[Dict[str, Any]]: 以下のキーを持つ辞書のリスト
             - 'run_dir': ランディレクトリのパス (str)
             - 'history': 履歴配列 (np.ndarray, 形状: (T, N, D))
+            - 'weight': 重み配列 (np.ndarray, 形状: (N, D))
+            - 'initial': 初期値配列 (np.ndarray, 形状: (N, D))
             - 'config': Hydra 設定 (dict) | 読み込み失敗時は None
     """
     root_path = Path(multirun_root)
@@ -52,7 +54,10 @@ def multirun_loader(
     # multirun 配下の全ての history.npy を探索
     for history_file in root_path.rglob(file_name):
         try:
-            history = np.load(history_file)
+            res = np.load(history_file)
+            history = res['history']
+            weight = res['weight']
+            initial = res['initial']
         except Exception:
             # 壊れたファイル等はスキップ
             continue
@@ -74,6 +79,8 @@ def multirun_loader(
         results.append({
             "run_dir": str(run_dir),
             "history": history,
+            "weight": weight,
+            "initial": initial,
             "config": cfg_dict,
         })
 
@@ -85,4 +92,4 @@ def multirun_loader(
 
 if __name__ == "__main__":
     results = multirun_loader(multirun_root="output/multi_pattern_mhn/multirun")
-    print(results)
+    print(results[0]["history"].shape)
