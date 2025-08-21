@@ -73,9 +73,10 @@ def get_cifar100() -> Tuple[Array, Array, list[str]]:
         2. 各クラスから最初の1枚だけ画像を抽出
         3. クラス順に画像・ラベル・クラス名を返す
     """
+    # CIFAR-100データセットをロード
     transform = transforms.Compose([
         transforms.Grayscale(num_output_channels=1),    # グレースケール変換
-        transforms.ToTensor()                           # テンソル変換
+        transforms.ToTensor(),                           # テンソル変換
     ])
     dataset = CIFAR100(root='resource/data', train=True, download=True, transform=transform)
     class_names = dataset.classes
@@ -91,7 +92,19 @@ def get_cifar100() -> Tuple[Array, Array, list[str]]:
     sorted_items = sorted(class_to_img.items(), key=lambda x: x[0])
     images = jnp.stack([item[1][0] for item in sorted_items], axis=0)
     labels = jnp.array([item[1][1] for item in sorted_items])
+
+    images = normalize(images)  # 標準化
     return images, labels, class_names
+
+
+def normalize(images: Array) -> Array:
+    """
+    画像配列を正規化する。
+    """
+    images = jnp.asarray(images)
+    mean = images.mean(axis=(1, 2, 3), keepdims=True)
+    std = images.std(axis=(1, 2, 3), keepdims=True)
+    return (images - mean) / (std + 1e-10)
 
 
 if __name__ == '__main__':

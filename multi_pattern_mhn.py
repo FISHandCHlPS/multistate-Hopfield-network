@@ -15,16 +15,7 @@ from calc.mpmhn import CMHN_Energy, total_force
 from resource.cifar100 import get_cifar100
 from plot.images import plot_images_trajectory, plot_image
 from plot.pca import plot_pca_feature, plot_pca_trajectory, plot_pca_ccr
-
-
-# 粒子数やパラメータ設定
-# num_particles = 20  # 粒子数
-# key = random.PRNGKey(42)
-# learning_rate = 1 # 学習率
-# gamma = 0.1   # 斥力の強さ
-# c = 2.0  # 斥力指数
-# beta = 100.0  # CMHNの逆温度
-# steps = 20 # 合計ステップ数
+from plot.similarity import plot_cos_sim
 
 
 def load_Weights():
@@ -61,7 +52,7 @@ def create_initial(W: ArrayLike, num_particles: int = 1, seed: int = 42):
     img_key, noise_key = random.split(random.PRNGKey(seed))
     random_index = 0#random.choice(img_key, images_flat.shape[0])
     base_img = W[:, random_index]  # (1024)
-    noise = random.normal(noise_key, shape=(num_particles, base_img.shape[0])) * 0.001  # ノイズ強度は適宜調整
+    noise = random.normal(noise_key, shape=(num_particles, base_img.shape[0])) * 0.05  # ノイズ強度は適宜調整
     initial = base_img + noise  # (num_particles, 1024)
     return initial
 
@@ -72,10 +63,11 @@ def run(cfg: DictConfig) -> Array:
     実行関数。
     """
     weight = load_Weights()  # 重み生成
+    weight = weight[:, :3]
     initial = create_initial(weight, num_particles=cfg.num_particles, seed=cfg.seed)    # 初期値
 
     # CMHNのエネルギー関数
-    E_CMHN = Partial(CMHN_Energy, W=weight, beta=cfg.beta)
+    E_CMHN = Partial(CMHN_Energy, W=weight, beta=cfg.beta)   # 3つの記憶のみ
     grad_E = jax.vmap(jax.grad(E_CMHN))  # ベクトル化された導関数
 
     # scan更新用
@@ -95,13 +87,16 @@ def run(cfg: DictConfig) -> Array:
     output_path = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
     jnp.savez(output_path + '/result.npz', history=history, weight=weight, initial=initial)
 
+    # 結果表示
     # plot_image(weight[:, 0].reshape(32, 32))
     # plot_image(initial[0].reshape(32, 32))
-    # plot_images_trajectory(history)
-
+    plot_images_trajectory(history, interval=2)
+    
     # plot_pca_feature(history)
     # plot_pca_trajectory(history)
     # plot_pca_ccr(history)
+
+    plot_cos_sim(history, weight)
 
 
 if __name__ == "__main__":

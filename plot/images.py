@@ -2,7 +2,7 @@ import numpy as np
 import plotly.express as px
 
 
-def plot_images_trajectory(history: np.ndarray, path: str='output', filename: str='recall_images.html') -> None:
+def plot_images_trajectory(history: np.ndarray, path: str='output', filename: str='recall_images.html', interval: int=1) -> None:
     """
     plotly.expressで、時刻・粒子ごとにhistoryの各ベクトルを32x32画像として切り替え表示
     history: (steps+1, num_particles, 1024)
@@ -11,7 +11,7 @@ def plot_images_trajectory(history: np.ndarray, path: str='output', filename: st
     xs = history.reshape(steps, num_particles, 32, 32)
 
     fig = px.imshow(
-        xs,
+        xs[::interval],
         animation_frame=0,
         facet_col=1,
         facet_col_wrap=5,
