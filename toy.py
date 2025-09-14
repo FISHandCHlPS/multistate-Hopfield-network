@@ -49,6 +49,7 @@ grad_E = jax.vmap(jax.grad(E_CMHN))  # ベクトル化された導関数
 def calc_force(x0: ArrayLike, x1: ArrayLike) -> Array:  # ([d], [d]) -> [d]
     """
     相互作用関数
+
     近づくほど強く反発する  斥力
     距離×力
     """
@@ -63,9 +64,7 @@ calc_force_all = jax.vmap(calc_force_v, in_axes=(0, None), out_axes=0)  # ([n,d]
 
 
 def total_force(x: ArrayLike) -> Array:
-    """
-    各粒子に働く合力を計算（自己相互作用を除く）
-    """
+    """各粒子に働く合力を計算（自己相互作用を除く）"""
     forces = calc_force_all(x, x)  # shape: (n, n, d)
     n = x.shape[0]
     mask = 1 - jnp.eye(n, dtype=bool)  # shape: (n, n)
@@ -76,6 +75,7 @@ def total_force(x: ArrayLike) -> Array:
 def stimulation_force(xs: ArrayLike, target: ArrayLike) -> Array:
     """
     入力刺激による力を計算。離れているほど大きな力。NaNは無視する。
+
     xs: 粒子の現在の状態 (jax.Array, shape=(num_particles, 2))
     target: 入力刺激座標 (jax.Array, shape=(2,))
     return: (num_particles, 2) の力ベクトル
@@ -90,6 +90,7 @@ def stimulation_force(xs: ArrayLike, target: ArrayLike) -> Array:
 def step_fn(xs: ArrayLike, target: ArrayLike) -> tuple[Array, Array]:
     """
     scanで全粒子を一括更新するための関数。
+
     xs: 粒子の現在の状態( jax.Array, shape=(num_particles, 2) )
     target: 入力刺激 (jax.Array, shape=(2,))
     return: (新しいxs, 記録用xs) のタプル。
@@ -110,7 +111,7 @@ if __name__ == "__main__":
     _, history = lax.scan(step_fn, xs_init, stimulus)     # history: (steps, num_particles, 2)
     # 初期値も履歴に含める
     history = jnp.concatenate([xs_init[None, :], history], axis=0)  # (steps+1, num_particles, 2)
-    print('computed')
+    print("computed")
 
     #plotTrajectory(history)
     animationTrajectory(history, 1)

@@ -119,8 +119,6 @@ def plot_cos_sim(
     Args:
         history_images (np.ndarray): 形状 (T, N, D)。時刻 T、粒子 N、次元 D の履歴。
         memory_images (np.ndarray): 形状 (D, M)。記憶 M、本数はサブプロットの数になる。
-        path (str): 出力ディレクトリ。
-        filename (str): 出力 HTML ファイル名。
     """
     # 類似度 (T, N, M)
     sim_matrix = calc_cos(history_images, memory_images.T)

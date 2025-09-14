@@ -21,11 +21,6 @@ def plot_pca_feature(
         history (np.ndarray): 履歴配列 (steps, num_particles, 画像次元)
         k (int, optional): 可視化する主成分の個数。Defaults to 4.
         img_shape (tuple[int, int], optional): 画像の(H, W)。Defaults to (32, 32)。
-        path (str, optional): 出力先のパス。Defaults to 'output'。
-        filename (str, optional): 出力ファイル名。Defaults to 'pca_feature.html'。
-
-    Returns:
-        None
     """
     _, _, dim = history.shape
     h, w = img_shape
@@ -56,11 +51,6 @@ def plot_pca_trajectory(history: np.ndarray, path: str='output', filename: str='
 
     Args:
         history (np.ndarray): 画像配列 (steps, num_particles, 画像次元)
-        path (str, optional): 出力先のパス。Defaults to 'output'。
-        filename (str, optional): 出力ファイル名。Defaults to 'pca_trajectory.html'。
-
-    Returns:
-        None
     """
     steps, num_particles, dim = history.shape
     pca = PCA(n_components=2)
@@ -93,20 +83,16 @@ def plot_pca_trajectory(history: np.ndarray, path: str='output', filename: str='
     fig.show()
 
 
-def plot_pca_ccr(history: np.ndarray, path: str='output', filename: str='pca_ccr.html') -> None:
+def plot_pca_ccr(history: np.ndarray, k: int = 20, path: str='output', filename: str='pca_ccr.html') -> None:
     """
     画像群をPCAし、粒子ごとの累積寄与率を可視化する。
 
     Args:
         history (np.ndarray): 画像配列 (steps, num_particles, 画像次元)
-        path (str, optional): 出力先のパス。Defaults to 'output'。
-        filename (str, optional): 出力ファイル名。Defaults to 'pca_ccr.html'。
-
-    Returns:
-        None
+        k (int, optional): 可視化する主成分の個数。Defaults to 20.
     """
     _, _, dim = history.shape
-    pca = PCA(n_components=20)
+    pca = PCA(n_components=k)
     pca.fit(history.reshape(-1, dim))  # 履歴全体で学習
     explained_var = pca.explained_variance_ratio_
     ccr = np.cumsum(explained_var)
@@ -115,7 +101,3 @@ def plot_pca_ccr(history: np.ndarray, path: str='output', filename: str='pca_ccr
     fig = px.line(df, x=df.index, y='CCR', title='PCA CCR of Particles', width=800, height=600)
     fig.write_html(f"{path}/{filename}")
     fig.show()
-
-
-# マルチランでどうやって可視化するか？
-# 累積寄与率が一定以上になるnを求めてヒストグラム

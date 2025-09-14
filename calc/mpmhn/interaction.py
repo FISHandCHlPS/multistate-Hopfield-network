@@ -7,14 +7,21 @@ interaction.py
 import jax
 import jax.numpy as jnp
 from jax import Array
-from jax.typing import ArrayLike
 from jax.tree_util import Partial
+from jax.typing import ArrayLike
+from jaxtyping import Float
 
 
-def calc_force(x0: ArrayLike, x1: ArrayLike,
-                exponent: float = 1.0, f_max: float = 10.0) -> Array:  # ([d], [d]) -> [d]
+@jax.jit
+def calc_force(
+    x0: Float[ArrayLike, " d"],
+    x1: Float[ArrayLike, " d"],
+    exponent: float = 1.0,
+    f_max: float = 10.0,
+) -> Float[Array, " d"]:
     """
     相互作用関数
+
     近づくほど強く反発する (斥力)
     距離×力
     """
@@ -24,15 +31,20 @@ def calc_force(x0: ArrayLike, x1: ArrayLike,
     return force * vec
 
 
-def total_force(x: ArrayLike, exponent: float = 1.0, f_max: float = 10.0) -> Array:
-    """
-    各粒子に働く合力を計算（自己相互作用を除く）
-    """
-    calc_force_p = Partial(calc_force, exponent=exponent, f_max=f_max)   # 引数を固定
-    # 他の全ての粒子との相互作用を計算
-    calc_force_v = jax.vmap(calc_force_p, in_axes=(None, 0), out_axes=0)  # ([d], [n,d]) -> [n,d]
-    # 全粒子同士の相互作用を計算
-    calc_force_all = jax.vmap(calc_force_v, in_axes=(0, None), out_axes=0)  # ([n,d], [d]) -> [n,n,d]
+def total_force(
+    x: Float[ArrayLike, "n d"],
+    exponent: float = 1.0,
+    f_max: float = 10.0,
+) -> Float[Array, "n d"]:
+    """各粒子に働く合力を計算（自己相互作用を除く）"""
+    # 引数を固定
+    calc_force_p = Partial(calc_force, exponent=exponent, f_max=f_max)
+
+    # 他の全ての粒子との相互作用を計算  ([d], [n,d]) -> [n,d]
+    calc_force_v = jax.vmap(calc_force_p, in_axes=(None, 0), out_axes=0)
+
+    # 全粒子同士の相互作用を計算  ([n,d], [d]) -> [n,n,d]
+    calc_force_all = jax.vmap(calc_force_v, in_axes=(0, None), out_axes=0)
 
     # 粒子毎の合力を計算
     forces = calc_force_all(x, x)  # shape: (n, n, d)
