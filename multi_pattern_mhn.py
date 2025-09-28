@@ -92,8 +92,8 @@ def run(cfg: DictConfig) -> Array:
     grad_e = jax.vmap(jax.grad(e_cmhn))  # ベクトル化された導関数
 
     # 入力刺激
-    stimulus = jnp.zeros((cfg.steps, initial.shape[1]))  # (steps, dim)
-    stimulus = add_stimulation(stimulus, 20, 30, weight[:, 0])  # (steps, dim)
+    stimulus = jnp.full((cfg.steps, initial.shape[1]), jnp.nan)  # (steps, dim)
+    stimulus = add_stimulation(stimulus, 20, 40, weight[:, 2])  # (steps, dim)
 
     # scan更新用
     # xs: 粒子の現在の状態( jax.Array, shape=(num_particles, dim) )
@@ -108,7 +108,7 @@ def run(cfg: DictConfig) -> Array:
         # 入力刺激に画像適当な画像を入れ、時間変化を見る
 
         # 勾配降下 + 斥力作用 + 入力刺激
-        xs_new = xs - lr * grad + cfg.gamma * interaction + 0.1 * stimulation
+        xs_new = xs - lr * grad + cfg.gamma * interaction# + 0.1 * stimulation
         return xs_new, xs_new   # (新しいxs, 記録用xs) のタプル
     # scanでシミュレーション
     _, history = lax.scan(step_fn, initial, xs=stimulus) # history: (steps, num_particles, dim)
