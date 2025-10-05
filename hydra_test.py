@@ -1,5 +1,4 @@
-"""
-hydra_test.py
+"""hydra_test.py
 
 Hydraを使った実行スクリプト
 """

@@ -1,5 +1,4 @@
-"""
-multiPatternMHN.py
+"""multiPatternMHN.py
 
 高次元における提案記憶モデル
 """
@@ -8,9 +7,9 @@ from resource.cifar100 import get_cifar100
 import hydra
 import jax
 import jax.numpy as jnp
-from jax import Array, lax, random
+from jax import lax, random
 from jax.tree_util import Partial
-from jax.typing import ArrayLike
+from jaxtyping import Array, ArrayLike, Float
 from omegaconf import DictConfig
 
 from calc.mpmhn import cmhn_energy, stimulation_force, total_force
@@ -18,9 +17,8 @@ from plot.images import plot_images_trajectory
 from plot.similarity import plot_cos_sim
 
 
-def load_weights() -> Array:
-    """
-    cifar100から重みを生成する。
+def load_weights() -> Float[Array, "dim num_patterns"]:
+    """cifar100から重みを生成する。
 
     Returns:
         W: 重み行列( jax.Array, shape=(dim, num_patterns) )
@@ -36,9 +34,12 @@ def load_weights() -> Array:
     return images_flat.T
 
 
-def create_initial(w: ArrayLike, num_particles: int = 1, seed: int = 42) -> Array:
-    """
-    初期値を生成する。
+def create_initial(
+    w: Float[ArrayLike, "dim num_patterns"],
+    num_particles: int = 1,
+    seed: int = 42,
+) -> Float[Array, "num_particles dim"]:
+    """初期値を生成する。
 
     Args:
         w (ArrayLike): 重み行列
@@ -51,7 +52,7 @@ def create_initial(w: ArrayLike, num_particles: int = 1, seed: int = 42) -> Arra
     """
     # 初期値: ランダムに選んだ画像+ノイズ
     img_key, noise_key = random.split(random.PRNGKey(seed))
-    random_index = 0#random.choice(img_key, images_flat.shape[0])
+    random_index = 0 # random.choice(img_key, images_flat.shape[0])
     base_img = w[:, random_index]  # (1024)
     noise = random.normal(
         key=noise_key,
@@ -62,7 +63,12 @@ def create_initial(w: ArrayLike, num_particles: int = 1, seed: int = 42) -> Arra
     return base_img + noise  # (num_particles, 1024)
 
 
-def add_stimulation(xs: ArrayLike, start: int, end: int, stimuli: ArrayLike) -> Array:
+def add_stimulation(
+    xs: Float[ArrayLike, "num_particles dim"],
+    start: int,
+    end: int,
+    stimuli: Float[ArrayLike, "dim num_particles"],
+) -> Float[Array, "num_particles dim"]:
     """入力刺激を生成する。"""
     assert xs.shape[1] == stimuli.shape[0]
     xs = jnp.asarray(xs)
@@ -71,13 +77,22 @@ def add_stimulation(xs: ArrayLike, start: int, end: int, stimuli: ArrayLike) -> 
 
 
 @hydra.main(config_path="config", config_name="mpmhn", version_base=None)
-def run(cfg: DictConfig) -> Array:
+def run(cfg: DictConfig) -> Float[Array, "num_particles dim"]:
     """実行関数"""
     lr = cfg.learning_rate
 
-    # 学習率を粒子数分の配列にする
-    lr = jnp.linspace(1.0, 0.1, cfg.num_particles)
+    # 学習率を粒子毎にガウス分布から生成
+    key = random.split(random.PRNGKey(cfg.seed))
+    mean = jnp.array([0.1, 0.7])
+    std = 0.2
+    lr = (
+        random.normal(key=key, shape=(cfg.num_particles,), loc=mean, scale=std)
+        .clip(a_min=1e-2, a_max=1)
+    )
     lr = jnp.atleast_2d(lr).T
+
+    # lr = jnp.linspace(0.6, 0.1, cfg.num_particles)
+    # lr = jnp.atleast_2d(lr).T
 
     weight = load_weights()  # 重み生成
     weight = weight[:, :3]
@@ -85,7 +100,7 @@ def run(cfg: DictConfig) -> Array:
         w=weight,
         num_particles=cfg.num_particles,
         seed=cfg.seed,
-    )    # 初期値
+    )   # 初期値
 
     # CMHNのエネルギー関数
     e_cmhn = Partial(cmhn_energy, w=weight, beta=cfg.beta)   # 3つの記憶のみ
@@ -95,21 +110,24 @@ def run(cfg: DictConfig) -> Array:
     stimulus = jnp.full((cfg.steps, initial.shape[1]), jnp.nan)  # (steps, dim)
     stimulus = add_stimulation(stimulus, 20, 40, weight[:, 2])  # (steps, dim)
 
-    # scan更新用
-    # xs: 粒子の現在の状態( jax.Array, shape=(num_particles, dim) )
-    def step_fn(xs: ArrayLike, target:ArrayLike) -> tuple[Array, Array]:
+    def step_fn(
+        xs: Float[ArrayLike, "num_particles dim"],
+        target: Float[ArrayLike, "dim num_particles"],
+    ) -> tuple[Float[Array, "num_particles dim"], Float[Array, "num_particles dim"]]:
+        """scan更新用関数"""
         grad = grad_e(xs)   # shape(粒子数、次元数): 勾配
         interaction = total_force(  # shape(粒子数、次元数):斥力
             xs,
             exponent=cfg.c,
             f_max=cfg.f_max,
         )
-        stimulation = stimulation_force(xs, target=target)  # shape(粒子数、次元数): 入力刺激
         # 入力刺激に画像適当な画像を入れ、時間変化を見る
+        stimulation = stimulation_force(xs, target=target)  # shape(粒子数、次元数): 入力刺激
 
         # 勾配降下 + 斥力作用 + 入力刺激
         xs_new = xs - lr * grad + cfg.gamma * interaction# + 0.1 * stimulation
         return xs_new, xs_new   # (新しいxs, 記録用xs) のタプル
+
     # scanでシミュレーション
     _, history = lax.scan(step_fn, initial, xs=stimulus) # history: (steps, num_particles, dim)
     # 初期値も履歴に含める
@@ -127,7 +145,7 @@ def run(cfg: DictConfig) -> Array:
     # history = (history - jnp.min(history)) / (jnp.max(history) - jnp.min(history))
 
     # 結果表示
-    plot_images_trajectory(history, interval=5, path=output_path)
+    # plot_images_trajectory(history, interval=5, path=output_path)
     plot_cos_sim(history, weight, path=output_path)
 
 

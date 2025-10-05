@@ -1,23 +1,23 @@
 # Base config for mpmhn.py
 # Hydra will load this when running mpmhn.py
 
-# seed: 42
-# num_particles: 20  # 粒子数
-# steps: 100 # 合計ステップ数
-# learning_rate: 0.1 # 学習率
-# gamma: 0.1   # 斥力の強さ
-# c: 2.0  # 斥力指数
-# beta: 5.0  # CMHNの逆温度
-# f_max: 10.0  # 斥力の最大値
-
 seed: 42
-num_particles: 20
-steps: 100
-learning_rate: 0.1
-gamma: 0.3
-c: 2.0
-beta: 1.0
-f_max: 10.0
+num_particles: 20  # 粒子数
+steps: 100 # 合計ステップ数
+learning_rate: 0.1 # 学習率
+gamma: 0.1   # 斥力の強さ
+c: 2.0  # 斥力指数
+beta: 30.0  # CMHNの逆温度
+f_max: 10.0  # 斥力の最大値
+
+# seed: 42
+# num_particles: 20
+# steps: 100
+# learning_rate: 0.1
+# gamma: 0.3
+# c: 2.0
+# beta: 1.0
+# f_max: 10.0
 
 defaults:
   - override hydra/job_logging: disabled
@@ -33,13 +33,13 @@ hydra:
   # multirun用の設定
   sweeper:
     params:
-      seed: range(2)
+      seed: 0
       num_particles: 20
-      steps: 30
-      learning_rate: 0.1, 0.2, 0.5
-      gamma: range(0.1, 1.0, 0.1)
-      c: 1.0, 2.0
-      beta: range(30.0, 120.0, 30.0)
+      steps: 50
+      learning_rate: 0.1
+      gamma: 0.1
+      c: 2.0
+      beta: 1.0, 5.0, 10.0, 20.0, 50.0, 100.0
       f_max: 10.0
   sweep:
     dir: ./output/${hydra.job.name}/multirun  # multirun用の出力ディレクトリ

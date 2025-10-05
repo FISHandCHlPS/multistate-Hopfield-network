@@ -12,6 +12,7 @@ dependencies = [
     "matplotlib>=3.10.3",
     "numpy>=2.3.0",
     "plotly>=6.1.2",
+    "polars>=1.34.0",
     "scikit-learn>=1.7.1",
     "torch>=2.7.1",
     "torchvision>=0.22.1",
@@ -34,12 +35,12 @@ select = ["ALL"]
 ignore = [
     "D1",       # undocumented
     "D203",     # one blank line before class
-    "D212",     # multi-line summary second line
+    "D211",     # multi-line summary second line
     "D400",     # First line should end with a period
     "D415",     # missing-terminal-punctuation
     "RUF001",   # 全角記号など`ambiguous unicode character`も使いたいため
     "RUF002",   # 全角記号など`ambiguous unicode character`も使いたいため
-    "RUF003",   # 全角記号など`ambiguous unicode character`も使いたいた
+    "RUF003",   # 全角記号など`ambiguous unicode character`も使いたいため
     "TD001",    # invalid todo tag
     "TD002",    # missing todo author
     "TD003",    # missing todo link

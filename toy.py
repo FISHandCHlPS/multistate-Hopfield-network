@@ -1,15 +1,11 @@
 import jax
 import jax.numpy as jnp
-import jax.lax as lax
-from jax import Array
-from jax.typing import ArrayLike
-from jax import random
+from jax import Array, lax, random
 from jax.tree_util import Partial
+from jax.typing import ArrayLike
 
-from plot.plot2d import plotTrajectory, plotEnergySurface, animationTrajectory
 from calc.mpmhn import CMHN_Energy
-from resource.cifar100 import get_cifar100
-
+from plot.plot2d import animationTrajectory
 
 # 初期値やパラメータ
 num_particles = 50      # 並列化する粒子数
@@ -23,8 +19,7 @@ steps = 50             # 合計ステップ数
 
 
 def E(x: ArrayLike) -> Array:
-    """
-    最小化したいエネルギー関数。
+    """最小化したいエネルギー関数。
     x: jax.Array (shape=(d,)) またはスカラー
     return: スカラー
     """
@@ -39,16 +34,15 @@ def E(x: ArrayLike) -> Array:
 #grad_E = jax.vmap(jax.grad(E))  # ベクトル化された導関数
 
 
-W = jnp.array([[ 1,-1, 1],
-               [-1, 1, 1]], dtype=jnp.float32)
+W = jnp.array( [[ 1,-1, 1],
+                [-1, 1, 1]], dtype=jnp.float32)
 beta = 5.0
 E_CMHN = Partial(CMHN_Energy, W=W, beta=beta)   # 部分適用でxのみの関数に変換
 grad_E = jax.vmap(jax.grad(E_CMHN))  # ベクトル化された導関数
 
 
 def calc_force(x0: ArrayLike, x1: ArrayLike) -> Array:  # ([d], [d]) -> [d]
-    """
-    相互作用関数
+    """相互作用関数
 
     近づくほど強く反発する  斥力
     距離×力
@@ -73,8 +67,7 @@ def total_force(x: ArrayLike) -> Array:
 
 
 def stimulation_force(xs: ArrayLike, target: ArrayLike) -> Array:
-    """
-    入力刺激による力を計算。離れているほど大きな力。NaNは無視する。
+    """入力刺激による力を計算。離れているほど大きな力。NaNは無視する。
 
     xs: 粒子の現在の状態 (jax.Array, shape=(num_particles, 2))
     target: 入力刺激座標 (jax.Array, shape=(2,))
@@ -88,8 +81,7 @@ def stimulation_force(xs: ArrayLike, target: ArrayLike) -> Array:
 
 # scan(vmap)形式：scanの中でvmapを使い、全粒子を一括更新
 def step_fn(xs: ArrayLike, target: ArrayLike) -> tuple[Array, Array]:
-    """
-    scanで全粒子を一括更新するための関数。
+    """scanで全粒子を一括更新するための関数。
 
     xs: 粒子の現在の状態( jax.Array, shape=(num_particles, 2) )
     target: 入力刺激 (jax.Array, shape=(2,))
@@ -105,7 +97,11 @@ def step_fn(xs: ArrayLike, target: ArrayLike) -> tuple[Array, Array]:
 
 if __name__ == "__main__":
     target = jnp.array([3.0, 3.0])  # 一定の入力刺激
-    stimulus = jnp.concatenate([jnp.tile(target, (50, 1)), jnp.full((steps-50, 2), jnp.nan)], axis=0)   # 50ステップ目まで刺激を与える
+    # 50ステップ目まで刺激を与える
+    stimulus = jnp.concatenate(
+        [jnp.tile(target, (50, 1)), jnp.full((steps-50, 2), jnp.nan)],
+        axis=0,
+    )
     xs_init = initial   # 初期値
 
     _, history = lax.scan(step_fn, xs_init, stimulus)     # history: (steps, num_particles, 2)

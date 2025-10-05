@@ -1,6 +1,5 @@
 
-"""
-interaction.py
+"""interaction.py
 
 粒子同士の相互作用を計算する
 """
@@ -19,8 +18,7 @@ def calc_force(
     exponent: float = 1.0,
     f_max: float = 10.0,
 ) -> Float[Array, " d"]:
-    """
-    相互作用関数
+    """相互作用関数
 
     近づくほど強く反発する (斥力)
     距離×力
@@ -37,7 +35,7 @@ def total_force(
     f_max: float = 10.0,
 ) -> Float[Array, "n d"]:
     """各粒子に働く合力を計算（自己相互作用を除く）"""
-    # 引数を固定
+    # x以外の引数を固定
     calc_force_p = Partial(calc_force, exponent=exponent, f_max=f_max)
 
     # 他の全ての粒子との相互作用を計算  ([d], [n,d]) -> [n,d]

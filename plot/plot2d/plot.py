@@ -1,6 +1,4 @@
-"""
-描画用関数の定義
-"""
+"""描画用関数の定義"""
 import pandas as pd
 import plotly.express as px
 import numpy as np
@@ -8,9 +6,8 @@ from numpy.typing import ArrayLike
 import plotly.graph_objects as go
 
 
-def plotEnergySurface(func, xmin=-10, xmax=10, ymin=-10, ymax=10, num=100):
-    """
-    エネルギー関数E(x, y)の3Dサーフェスプロット（plotly版）
+def plot_energy_surface(func, xmin=-10, xmax=10, ymin=-10, ymax=10, num=100):
+    """エネルギー関数E(x, y)の3Dサーフェスプロット（plotly版）
     func: エネルギー関数
     xmin, xmax, ymin, ymax: 描画範囲
     num: 分割数
@@ -25,41 +22,41 @@ def plotEnergySurface(func, xmin=-10, xmax=10, ymin=-10, ymax=10, num=100):
     fig = go.Figure(data=[go.Surface(z=Z, x=X, y=Y, colorscale='Viridis')])
     fig.update_layout(
         title="Energy Surface (E(x, y))",
-        scene=dict(
+        scene = dict(
             xaxis_title='x',
             yaxis_title='y',
             zaxis_title='E(x, y)'
         ),
         width=800,
         height=600,
-        margin=dict(l=0, r=0, b=0, t=40)
+        margin={"l": 0, "r": 0, "b": 0, "t": 40},
     )
     fig.show()
 
 
-def plotTrajectory(history: ArrayLike, title="Trajectories"):
-    """
-    == Plotly Expressによる軌跡描画 ==
+def plot_trajectory(history: ArrayLike, title="Trajectories"):
+    """Plotly Expressによる軌跡描画
     history: (steps+1, num_particles, 2)
     各パーティクルの軌跡を色分けしてプロット
     """
     history = np.asarray(history)
-    df = arrayToDataFrame(history, interval=10)
+    df = array_to_dataframe(history, interval=10)
     fig = px.line(df, x="x", y="y", color="particle", line_group="particle", title=title)
     fig.update_layout(xaxis_title="X", yaxis_title="Y")
     fig.show()
 
 
-def animationTrajectory(history: ArrayLike, interval: int=10):
-    """
-    == Plotly Expressによるアニメーション ==
+def animation_trajectory(history: ArrayLike, interval: int=10):
+    """Plotly Expressによるアニメーション
+
     history: (steps+1, num_particles, 2)
+
     """
     history = np.asarray(history)  # (steps+1, num_particles, 2)
     # TODO:3Dplotでエネルギーの上昇を可視化
     # history → DataFrameへ変換
     # 間引き
-    df = arrayToDataFrame(history, interval)
+    df = array_to_dataframe(history, interval)
 
     fig = px.scatter(
         df,
@@ -76,14 +73,14 @@ def animationTrajectory(history: ArrayLike, interval: int=10):
         height=600,
     )
     fig.show()
-    fig.write_html('../output/animation.html')
+    fig.write_html("../output/animation.html")
 
 
-def arrayToDataFrame(history: ArrayLike, interval: int=10):
-    """
+def array_to_dataframe(history: ArrayLike, interval: int=10):
+    """配列に不正な値（NaN, inf, None）が含まれていないかチェックし、問題があれば例外を投げる。
+
     history: (steps+1, num_particles, 2)
-    配列に不正な値（NaN, inf, None）が含まれていないかチェックし、
-    問題があれば例外を投げる。
+
     """
     selected = history[::interval]  # (steps+1//interval, num_particles, 2)
     steps = selected.shape[0]
@@ -112,5 +109,5 @@ def arrayToDataFrame(history: ArrayLike, interval: int=10):
         "particle": particle_col,
         "x": x_col,
         "y": y_col
-    })  
+    })
     return df

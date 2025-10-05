@@ -1,5 +1,4 @@
-"""
-Energy.py
+"""Energy.py
 
 JAX を用いたさまざまなホップフィールドネットワークモデルのエネルギー関数を提供します。
 """
@@ -13,8 +12,7 @@ def cmhn_energy(
     w: Float[ArrayLike, "d n"],
     beta: float = 1.0,
 ) -> float:
-    """
-    CMHNモデルのエネルギーを計算します。
+    """CMHNモデルのエネルギーを計算します。
 
     Args:
         x (ArrayLike): 連続値の状態ベクトル
@@ -42,8 +40,7 @@ def dam_energy(
     w: Float[ArrayLike, "d n"],
     ex: int = 2,
 ) -> float:
-    """
-    DAMモデルのエネルギーを計算します。
+    """DAMモデルのエネルギーを計算します。
 
     Args:
         x (ArrayLike): 離散値の状態ベクトル

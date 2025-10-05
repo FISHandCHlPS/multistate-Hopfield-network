@@ -1,26 +1,24 @@
-"""
-CIFAR-100の画像をダウンロードして表示するサンプルコード
-"""
-import matplotlib.pyplot as plt
-from torchvision.datasets import CIFAR100
-from torchvision import transforms
-import numpy as np
-from jax.typing import ArrayLike
-from jax import Array
+"""CIFAR-100の画像をダウンロードして表示するサンプルコード"""
 import jax.numpy as jnp
-from typing import Tuple
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from jaxtyping import Array, ArrayLike
+from torchvision import transforms
+from torchvision.datasets import CIFAR100
 
-# 画像表示用関数
+
 def show_images(images: ArrayLike, labels: ArrayLike, class_names: list[str]) -> None:
-    """
-    グレースケール画像の配列を、クラスごとにグリッド表示する。
+    """グレースケール画像の配列を、クラスごとにグリッド表示する。
 
     Args:
         images (ArrayLike): 画像配列。shape=(N, 1, H, W)
         labels (ArrayLike): クラスラベル配列。shape=(N,)
         class_names (list[str]): クラス名リスト。
+
     Returns:
         None
+
     """
     n = len(images)
     grid_size = int(np.ceil(np.sqrt(n)))  # 10x10グリッド想定
@@ -29,56 +27,56 @@ def show_images(images: ArrayLike, labels: ArrayLike, class_names: list[str]) ->
         if idx < n:  # 画像がある場合
             img = images[idx]
             img = img[0]  # (1, H, W) -> (H, W)
-            ax.imshow(img, cmap='gray')
+            ax.imshow(img, cmap="gray")
             ax.set_title(class_names[labels[idx]], fontsize=8)
-            ax.axis('off')
+            ax.axis("off")
         else:  # 画像がない場合は表示しない（余ったセル）
-            ax.axis('off')
+            ax.axis("off")
     plt.subplots_adjust(
         left=0.02,    # 左側の余白
         bottom=0.02,  # 下側の余白
         right=0.98,   # 右側の余白
         top=0.95,     # 上側の余白（タイトル分少し余裕）
         wspace=0.05,  # 列間の間隔
-        hspace=0.15   # 行間の間隔（タイトル分少し広め）
+        hspace=0.15,   # 行間の間隔（タイトル分少し広め）
     )
     plt.show()
 
 
-def pytorch_to_jax(tensor_batch: 'torch.Tensor') -> Array:
-    """
-    PyTorchのテンソルをJAXのndarrayに変換する。
+def pytorch_to_jax(tensor_batch: torch.Tensor) -> Array:
+    """PyTorchのテンソルをJAXのndarrayに変換する。
 
     Args:
         tensor_batch (torch.Tensor): PyTorchのテンソル
+
     Returns:
         Array: JAXのndarray
+
     """
     numpy_batch = tensor_batch.detach().cpu().numpy()
-    jax_batch = jnp.array(numpy_batch)
-    return jax_batch
+    return jnp.array(numpy_batch)
 
 
-def get_cifar100() -> Tuple[Array, Array, list[str]]:
-    """
-    CIFAR-100データセットから、全100クラスそれぞれ1枚ずつグレースケール画像を取得する。
+def get_cifar100() -> tuple[Array, Array, list[str]]:
+    """CIFAR-100データセットから、全100クラスそれぞれ1枚ずつグレースケール画像を取得する。
+
+    処理の流れ
+        1. torchvisionのCIFAR-100データセットをグレースケール変換付きでロード
+        2. 各クラスから最初の1枚だけ画像を抽出
+        3. クラス順に画像・ラベル・クラス名を返す
 
     Returns:
         images (Array): 画像配列（shape: [100, 1, 32, 32]、JAX配列）。
         labels (Array): クラスラベル配列（shape: [100]、JAX配列）。
         class_names (list[str]): クラス名リスト（長さ100）。
 
-    処理の流れ:
-        1. torchvisionのCIFAR-100データセットをグレースケール変換付きでロード
-        2. 各クラスから最初の1枚だけ画像を抽出
-        3. クラス順に画像・ラベル・クラス名を返す
     """
     # CIFAR-100データセットをロード
     transform = transforms.Compose([
         transforms.Grayscale(num_output_channels=1),    # グレースケール変換
         transforms.ToTensor(),                           # テンソル変換
     ])
-    dataset = CIFAR100(root='resource/data', train=True, download=True, transform=transform)
+    dataset = CIFAR100(root="resource/data", train=True, download=True, transform=transform)
     class_names = dataset.classes
 
     # 各クラスから1枚ずつ画像を取得
@@ -98,16 +96,14 @@ def get_cifar100() -> Tuple[Array, Array, list[str]]:
 
 
 def normalize(images: Array) -> Array:
-    """
-    画像配列を正規化する。
-    """
+    """画像配列を標準化する"""
     images = jnp.asarray(images)
     mean = images.mean(axis=(1, 2, 3), keepdims=True)
     std = images.std(axis=(1, 2, 3), keepdims=True)
     return (images - mean) / (std + 1e-10)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     """
     CIFAR-100の全クラスからグレースケール画像を1枚ずつ取得し、
     クラス名付きでグリッド表示するデモスクリプト。
