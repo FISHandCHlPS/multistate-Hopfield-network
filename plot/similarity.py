@@ -4,9 +4,11 @@ from typing import Literal
 
 import numpy as np
 import plotly.express as px
+import polars as pl
 from jaxtyping import ArrayLike, Float
 
 from plot.evaluation import calc_cos
+from plot.loader import extract_data, extract_parameters
 from plot.utils import array2df
 
 
@@ -74,7 +76,7 @@ def plot_similarity_trajectory(history_images: np.ndarray, memory_images: np.nda
     fig.write_html("./output/similarity_trajectory.html")
 
 
-def plot_cos_sim(
+def plot_cos(
     history_images: np.ndarray, memory_images: np.ndarray,
     path: str = "output", filename: str = "cosine_similarity.html",
 ) -> None:
@@ -87,7 +89,7 @@ def plot_cos_sim(
         filename (str): 出力ファイル名。
 
     """
-    sim_matrix = calc_cos(history_images, memory_images.T)  # 類似度 (T, N, M)
+    sim_matrix = calc_cos(history_images, memory_images)  # 類似度 (T, N, M)
 
     df = array2df(sim_matrix, column_names=["t", "particle", "memory"])
 
@@ -116,7 +118,60 @@ def plot_cos_sim(
     fig.show()
 
 
-def plot_cos_sim_per_param(
+def plot_cos_trajectory(
+    history_images: np.ndarray, memory_images: np.ndarray,
+    path: str = "output", filename: str = "cosine_similarity.html",
+) -> None:
+    """各記憶に対するコサイン類似度の時間変化を可視化
+
+    記憶を横軸に取る
+
+    Args:
+        history_images (np.ndarray): 形状 (T, N, D)。時刻 T、粒子 N、次元 D の履歴。
+        memory_images (np.ndarray): 形状 (D, M)。記憶 M、本数はサブプロットの数になる。
+        path (str): 出力先のディレクトリ。
+        filename (str): 出力ファイル名。
+
+    """
+    sim_matrix = calc_cos(history_images, memory_images)  # 類似度 (T, N, M)
+    diff_sim = sim_matrix[..., 2] - sim_matrix[..., 1]  # 縦軸
+    memory_sim = sim_matrix[..., 0]     # 横軸
+
+    df_memory = (
+        array2df(memory_sim, column_names=["t", "particle"])
+        .with_columns(pl.lit(0).alias("axis"))
+    )
+    df_diff = (
+        array2df(diff_sim, column_names=["t", "particle"])
+        .with_columns(pl.lit(1).alias("axis"))
+    )
+    df = pl.concat([df_memory, df_diff], how="vertical")
+
+    fig = px.line(
+        df,
+        x="t",
+        y="value",
+        color="particle",
+        facet_col="axis",
+        line_group="particle",
+        markers=False,
+        title="Cosine Similarity over Time per Memory (faceted)",
+    )
+
+    fig.update_yaxes(title_text="cosine similarity", range=[-1.0, 1.0])
+    fig.update_xaxes(title_text="t")
+    fig.update_layout(
+        legend_title_text="particle",
+        margin={"l": 40, "r": 40, "t": 60, "b": 40},
+    )
+
+    # 出力
+    assert Path(path).is_dir(), f"出力ディレクトリが存在しません: {path}"
+    fig.write_html(str(Path(path) / filename))
+    fig.show()
+
+
+def plot_cos_multirun(
     multirun_data: list[dict[Literal["history", "weight", "initial", "config", "run_dir"]]],
     memory: Float[ArrayLike, "dim num_memory"],
     path: str = "output", filename: str = "cosine_similarity_per_param.html",
@@ -132,38 +187,35 @@ def plot_cos_sim_per_param(
         filename (str): 出力ファイル名。
 
     """
-    # df = (
-    #     # history列に多重配列、残りの列はパラメータ
-    #     results_to_dataframe(multirun_data, loading_data="history")
-    #     # 各要素に多重配列が入っているため、そのまま処理
-    #     .with_columns(
-    #         calc_cos(pl.col("history"), memory.T).alias("cos"),
-    #     )
-    #     .with_columns(
-    #         array2df(pl.col("cos")).alias("cos_df"),
-    #     )
-    #     # .explode("cos_df")   # 多重配列を展開
-    # )
-    # print(df)
+    history = extract_data(multirun_data, loading_data="history")   # (run, step, particles, dim)
+    sim_matrix = calc_cos(history, memory)  # 類似度 (run, step, particles, n_memory)
+    df = array2df(sim_matrix, column_names=["index", "t", "particles_idx", "memory_idx"])
 
-    # fig = px.line(
-    #     df,
-    #     x="cos_df.t",
-    #     y="cos_df.value",
-    #     color="particle",
-    #     facet_col="memory",
-    #     line_group="particle",
-    #     markers=False,
-    #     title="Cosine Similarity over Time per Memory (faceted)",
-    # )
-    # fig.update_yaxes(title_text="cosine similarity", range=[-1.0, 1.0])
-    # fig.update_xaxes(title_text="t")
-    # fig.update_layout(
-    #     legend_title_text="particle",
-    #     margin={"l": 40, "r": 40, "t": 60, "b": 40},
-    # )
+    params = extract_parameters(multirun_data)
+    df_with_params = df.join(params, on="index").drop("index").sort(by="beta")
+    df_with_params = df_with_params.filter(pl.col("beta") < 5.0)
 
-    # # 出力
-    # assert Path(path).is_dir(), f"出力ディレクトリが存在しません: {path}"
-    # fig.write_html(str(Path(path) / filename))
-    # fig.show()
+    # サブプロットで各記憶ごとに可視化（粒子ごとに色分け）
+    fig = px.line(
+        df_with_params,
+        x="t",
+        y="value",
+        color="particles_idx",
+        facet_row="beta",
+        facet_col="memory_idx",
+        line_group="particles_idx",
+        markers=False,
+        title="Cosine Similarity over Time",
+    )
+
+    fig.update_yaxes(title_text="cosine similarity", range=[-1.0, 1.0])
+    fig.update_xaxes(title_text="t")
+    fig.update_layout(
+        legend_title_text="particles_idx",
+        margin={"l": 40, "r": 40, "t": 60, "b": 40},
+    )
+
+    # 出力
+    assert Path(path).is_dir(), f"出力ディレクトリが存在しません: {path}"
+    fig.write_html(str(Path(path) / filename))
+    fig.show()

@@ -6,8 +6,6 @@ import polars as pl
 from omegaconf import OmegaConf
 from omegaconf.errors import OmegaConfBaseException
 
-from plot.similarity import plot_cos_sim_per_param
-
 USE_MEMMAP = False  # True にするとメモリマップで読み込む。一部のデータのみ使いたい場合にTrue
 
 
@@ -111,4 +109,3 @@ if __name__ == "__main__":
     # results = results_loader(root="output/multi_pattern_mhn/run")
     results = results_loader(root="output/multi_pattern_mhn/multirun")
     #print(results_to_dataframe(results, loading_data="history"))
-    plot_cos_sim_per_param(results, memory=np.eye(2))

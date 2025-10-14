@@ -43,5 +43,4 @@ def array2df(arr: ArrayLike, column_names: list[str] | None = None) -> pl.DataFr
     data = {name: flat_coords[i] for i, name in enumerate(idx_names)}
     data["value"] = flat_values
 
-    column_order = [*idx_names, "value"]
-    return pl.DataFrame(data, columns=column_order)
+    return pl.DataFrame(data)

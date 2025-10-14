@@ -12,9 +12,12 @@ from jax.tree_util import Partial
 from jaxtyping import Array, ArrayLike, Float
 from omegaconf import DictConfig
 
-from calc.mpmhn import cmhn_energy, stimulation_force, total_force
-from plot.images import plot_images_trajectory
-from plot.similarity import plot_cos_sim
+from calc.mpmhn.energy import cmhn_energy
+from calc.mpmhn.interaction import total_force
+from calc.mpmhn.stimulation import stimulation_force
+
+#from plot.images import plot_images_trajectory
+from plot.similarity import plot_cos
 
 
 def load_weights() -> Float[Array, "dim num_patterns"]:
@@ -25,7 +28,7 @@ def load_weights() -> Float[Array, "dim num_patterns"]:
 
     """
     # CIFAR画像を読み込み
-    images, labels, class_names = get_cifar100()  # images: (100, 1, 32, 32)
+    images, _, _ = get_cifar100()  # images: (100, 1, 32, 32)
     images_flat = images.reshape(images.shape[0], -1)  # (100, 1024)
     # 各画像を正規化
     images_flat = images_flat / jnp.linalg.norm(images_flat, axis=1, keepdims=True)
@@ -82,13 +85,30 @@ def run(cfg: DictConfig) -> Float[Array, "num_particles dim"]:
     lr = cfg.learning_rate
 
     # 学習率を粒子毎にガウス分布から生成
-    key = random.split(random.PRNGKey(cfg.seed))
-    mean = jnp.array([0.1, 0.7])
-    std = 0.2
-    lr = (
-        random.normal(key=key, shape=(cfg.num_particles,), loc=mean, scale=std)
-        .clip(a_min=1e-2, a_max=1)
-    )
+    lr_configs = [
+        {"mean": 0.1, "std": 0.3, "count": 17},
+        {"mean": 0.7, "std": 0.3, "count": 3},
+    ]
+
+    def generate_lr_batch(config: dict, key: jax.Array) -> jax.Array:
+        """設定から学習率を生成"""
+        mean = config["mean"]
+        std = config["std"]
+        count = config["count"]
+
+        return (
+            random.normal(key=key, shape=(count,)) * std + mean
+        ).clip(min=1e-3, max=5)
+
+    # 設定リストから学習率を生成して結合
+    keys = random.split(random.PRNGKey(cfg.seed), len(lr_configs))
+    lr_batches = []
+
+    for config, key in zip(lr_configs, keys, strict=True):
+        lr_batch = generate_lr_batch(config, key)
+        lr_batches.append(lr_batch)
+
+    lr = jnp.concatenate(lr_batches)
     lr = jnp.atleast_2d(lr).T
 
     # lr = jnp.linspace(0.6, 0.1, cfg.num_particles)
@@ -138,6 +158,7 @@ def run(cfg: DictConfig) -> Float[Array, "num_particles dim"]:
     jnp.save(output_path + "/history.npy", history)
     jnp.save(output_path + "/weight.npy", weight)
     jnp.save(output_path + "/initial.npy", initial)
+    jnp.save(output_path + "/lr.npy", lr)
 
     # ノルムを1に正規化
     history /= jnp.linalg.norm(history, axis=-1, keepdims=True)
@@ -146,7 +167,7 @@ def run(cfg: DictConfig) -> Float[Array, "num_particles dim"]:
 
     # 結果表示
     # plot_images_trajectory(history, interval=5, path=output_path)
-    plot_cos_sim(history, weight, path=output_path)
+    plot_cos(history, weight, path=output_path)
 
 
 if __name__ == "__main__":
