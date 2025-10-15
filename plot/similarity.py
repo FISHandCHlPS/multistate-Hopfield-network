@@ -188,7 +188,6 @@ def plot_cos_trajectory(
 def plot_cos_multirun(
     multirun_data: list[dict[Literal["history", "weight", "initial", "config", "run_dir"]]],
     memory: Float[ArrayLike, "dim num_memory"],
-    path: str = "output", filename: str = "cosine_similarity_per_param.html",
 ) -> None:
     """パラメータ毎にcosの時間変化をプロット
 
@@ -197,39 +196,51 @@ def plot_cos_multirun(
     Args:
         multirun_data (list[dict]): パラメータ毎の結果
         memory (Float[ArrayLike, "dim num_memory"]): 記憶
-        path (str): 出力先のディレクトリ。
-        filename (str): 出力ファイル名。
 
     """
-    history = extract_data(multirun_data, loading_data="history")   # (run, step, particles, dim)
-    sim_matrix = calc_cos(history, memory)  # 類似度 (run, step, particles, n_memory)
-    df = array2df(sim_matrix, column_names=["index", "t", "particles_idx", "memory_idx"])
+    params = extract_parameters(multirun_data)  # パラメータ
+    params_filtered = params.filter(pl.col("beta").is_between(1, 2)).rename({"index": "filter_idx"})
+    filter_idx = params_filtered.select("filter_idx").to_numpy().flatten()
 
-    params = extract_parameters(multirun_data)
-    df_with_params = df.join(params, on="index").drop("index").sort(by="beta")
-    df_with_params = df_with_params.filter(pl.col("beta") < 5.0)
+    # フィルタリングしたパラメータの履歴
+    filtered_data = [multirun_data[i] for i in filter_idx]
+    history = extract_data(filtered_data, loading_data="history")
+    sim_matrix = calc_cos(history, memory)  # 類似度 (run, step, particles, n_memory)
+    data_df = array2df(
+        sim_matrix,
+        column_names=["index", "t", "particles_idx", "memory_idx"],
+    )  # 新たにインデックスが作成される
+    params_filtered = params_filtered.with_row_index("index")   # 上に合わせてインデックスを振り直す
+
+    df_with_params = (
+        data_df.join(params_filtered, on="index")
+        .drop("index")
+        .sort(by=["beta","gamma"])
+    )
 
     # サブプロットで各記憶ごとに可視化（粒子ごとに色分け）
-    fig = px.line(
-        df_with_params,
-        x="t",
-        y="value",
-        color="particles_idx",
-        facet_row="beta",
-        facet_col="memory_idx",
-        line_group="particles_idx",
-        markers=False,
-        title="Cosine Similarity over Time",
-    )
+    def plot(df: pl.DataFrame, title: str) -> None:
+        fig = px.line(
+            df,
+            x="t",
+            y="value",
+            color="particles_idx",
+            facet_row="beta",
+            facet_col="gamma",
+            line_group="particles_idx",
+            markers=False,
+            title=title,
+        )
 
-    fig.update_yaxes(title_text="cosine similarity", range=[-1.0, 1.0])
-    fig.update_xaxes(title_text="t")
-    fig.update_layout(
-        legend_title_text="particles_idx",
-        margin={"l": 40, "r": 40, "t": 60, "b": 40},
-    )
+        fig.update_yaxes(title_text="cosine similarity", range=[-1.0, 1.0])
+        fig.update_xaxes(title_text="t")
+        fig.update_layout(
+            legend_title_text="particles_idx",
+            margin={"l": 40, "r": 40, "t": 60, "b": 40},
+        )
+        fig.show()
 
-    # 出力
-    assert Path(path).is_dir(), f"出力ディレクトリが存在しません: {path}"
-    fig.write_html(str(Path(path) / filename))
-    fig.show()
+    for i in range(3):
+        df_ploting = df_with_params.filter(pl.col("memory_idx") == i)
+        plot(df_ploting, title = f"cosine similarity of memory {i}")
+

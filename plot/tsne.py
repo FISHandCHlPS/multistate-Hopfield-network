@@ -27,21 +27,19 @@ def plot_tsne_trajectory(
 
     # historyの座標を生成
     coord = get_flat_coord(history[..., 0])   # (steps, num_particles)のインデックスを生成
-    print(coord)
     coord_df = pl.DataFrame(coord, schema=["t", "particles"])
-    print(coord_df)
-
 
     # t-SNE結果を結合
     tsne_df = pl.concat([coord_df, reduced_df], how="horizontal")
 
+    # 可視化
     fig = px.scatter(
         tsne_df,
         x="value_0",
         y="value_1",
         color="particles",
-        # animation_group="particles",
-        # animation_frame="t",
+        animation_group="particles",
+        animation_frame="t",
         range_x=[-60, 60],
         range_y=[-60, 60],
         title="t-SNE Trajectory of Particles",

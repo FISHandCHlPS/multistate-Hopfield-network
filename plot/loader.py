@@ -6,7 +6,7 @@ import polars as pl
 from omegaconf import OmegaConf
 from omegaconf.errors import OmegaConfBaseException
 
-USE_MEMMAP = False  # True にするとメモリマップで読み込む。一部のデータのみ使いたい場合にTrue
+USE_MEMMAP = True  # True にするとメモリマップで読み込む。一部のデータのみ使いたい場合にTrue
 
 
 def results_loader(

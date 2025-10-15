@@ -58,6 +58,7 @@ def create_initial(
     img_key, noise_key = random.split(random.PRNGKey(seed))
     random_index = 0 # random.choice(img_key, images_flat.shape[0])
     base_img = w[:, random_index]  # (1024)
+    base_img = w[:, 0] + w[:, 1] + w[:, 2]  # (1, 1024)
     noise = random.normal(
         key=noise_key,
         shape=(num_particles, base_img.shape[0]),
@@ -85,8 +86,8 @@ def run(cfg: DictConfig) -> Float[Array, "num_particles dim"]:
     """実行関数"""
     # 学習率を粒子毎にガウス分布から生成
     lr_configs = [
-        {"mean": 0.1, "std": 0.3, "count": 17},
-        {"mean": 0.7, "std": 0.3, "count": 3},
+        {"mean": 0.3, "std": 0.3, "count": 15},
+        {"mean": 0.7, "std": 0.3, "count": 5},
     ]
 
     def generate_lr_batch(config: dict, key: jax.Array) -> jax.Array:
@@ -170,8 +171,8 @@ def run(cfg: DictConfig) -> Float[Array, "num_particles dim"]:
     # 結果表示
     # plot_images_trajectory(history, interval=5, path=output_path)
     # plot_cos(history, weight, path=output_path)
-    # plot_cos_trajectory(history, weight, path=output_path)
-    plot_tsne_trajectory(history, path=output_path)
+    #plot_cos_trajectory(history, weight, path=output_path)
+    # plot_tsne_trajectory(history, path=output_path)
 
 
 if __name__ == "__main__":
