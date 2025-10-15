@@ -120,11 +120,11 @@ def plot_cos(
 
 def plot_cos_trajectory(
     history_images: np.ndarray, memory_images: np.ndarray,
-    path: str = "output", filename: str = "cosine_similarity.html",
+    path: str = "output", filename: str = "cosine_trajectory.html",
 ) -> None:
     """各記憶に対するコサイン類似度の時間変化を可視化
 
-    記憶を横軸に取る
+    軌跡の線と開始地点の点を表示する
 
     Args:
         history_images (np.ndarray): 形状 (T, N, D)。時刻 T、粒子 N、次元 D の履歴。
@@ -139,27 +139,41 @@ def plot_cos_trajectory(
 
     df_memory = (
         array2df(memory_sim, column_names=["t", "particle"])
-        .with_columns(pl.lit(0).alias("axis"))
+        .sort(by="t")
+        .with_columns(pl.col("value").alias("value_x"))
     )
     df_diff = (
         array2df(diff_sim, column_names=["t", "particle"])
-        .with_columns(pl.lit(1).alias("axis"))
+        .sort(by="t")
+        .with_columns(pl.col("value").alias("value_y"))
     )
-    df = pl.concat([df_memory, df_diff], how="vertical")
+    df = df_memory.join(df_diff, on=["t", "particle"])
 
+    # 軌跡の線を表示
     fig = px.line(
         df,
-        x="t",
-        y="value",
+        x="value_x",
+        y="value_y",
         color="particle",
-        facet_col="axis",
         line_group="particle",
         markers=False,
-        title="Cosine Similarity over Time per Memory (faceted)",
+        title="Cosine Similarity over Time",
     )
 
-    fig.update_yaxes(title_text="cosine similarity", range=[-1.0, 1.0])
-    fig.update_xaxes(title_text="t")
+    # 開始時点（t=0）のデータのみを抽出
+    df_start = df.filter(pl.col("t") == 0)
+    # 開始地点の点を追加
+    fig.add_trace(
+        px.scatter(
+            df_start,
+            x="value_x",
+            y="value_y",
+            color="particle",
+        ).data[0],
+    )
+
+    fig.update_yaxes(title_text="cosine of memory B - C", range=[-1.2, 1.2])
+    fig.update_xaxes(title_text="cosine of memory A", range=[-1.1, 1.1])
     fig.update_layout(
         legend_title_text="particle",
         margin={"l": 40, "r": 40, "t": 60, "b": 40},

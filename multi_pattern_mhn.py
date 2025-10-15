@@ -17,7 +17,8 @@ from calc.mpmhn.interaction import total_force
 from calc.mpmhn.stimulation import stimulation_force
 
 #from plot.images import plot_images_trajectory
-from plot.similarity import plot_cos
+from plot.similarity import plot_cos, plot_cos_trajectory
+from plot.tsne import plot_tsne_trajectory
 
 
 def load_weights() -> Float[Array, "dim num_patterns"]:
@@ -72,7 +73,7 @@ def add_stimulation(
     end: int,
     stimuli: Float[ArrayLike, "dim num_particles"],
 ) -> Float[Array, "num_particles dim"]:
-    """入力刺激を生成する。"""
+    """入力刺激を生成する"""
     assert xs.shape[1] == stimuli.shape[0]
     xs = jnp.asarray(xs)
     stimuli = jnp.asarray(stimuli)
@@ -82,8 +83,6 @@ def add_stimulation(
 @hydra.main(config_path="config", config_name="mpmhn", version_base=None)
 def run(cfg: DictConfig) -> Float[Array, "num_particles dim"]:
     """実行関数"""
-    lr = cfg.learning_rate
-
     # 学習率を粒子毎にガウス分布から生成
     lr_configs = [
         {"mean": 0.1, "std": 0.3, "count": 17},
@@ -109,10 +108,8 @@ def run(cfg: DictConfig) -> Float[Array, "num_particles dim"]:
         lr_batches.append(lr_batch)
 
     lr = jnp.concatenate(lr_batches)
-    lr = jnp.atleast_2d(lr).T
 
-    # lr = jnp.linspace(0.6, 0.1, cfg.num_particles)
-    # lr = jnp.atleast_2d(lr).T
+    lr_2d = jnp.atleast_2d(lr).T
 
     weight = load_weights()  # 重み生成
     weight = weight[:, :3]
@@ -128,7 +125,7 @@ def run(cfg: DictConfig) -> Float[Array, "num_particles dim"]:
 
     # 入力刺激
     stimulus = jnp.full((cfg.steps, initial.shape[1]), jnp.nan)  # (steps, dim)
-    stimulus = add_stimulation(stimulus, 20, 40, weight[:, 2])  # (steps, dim)
+    #stimulus = add_stimulation(stimulus, 20, 40, weight[:, 2])  # (steps, dim)
 
     def step_fn(
         xs: Float[ArrayLike, "num_particles dim"],
@@ -145,7 +142,7 @@ def run(cfg: DictConfig) -> Float[Array, "num_particles dim"]:
         stimulation = stimulation_force(xs, target=target)  # shape(粒子数、次元数): 入力刺激
 
         # 勾配降下 + 斥力作用 + 入力刺激
-        xs_new = xs - lr * grad + cfg.gamma * interaction# + 0.1 * stimulation
+        xs_new = xs - lr_2d * grad + cfg.gamma * interaction + 0.1 * stimulation
         return xs_new, xs_new   # (新しいxs, 記録用xs) のタプル
 
     # scanでシミュレーション
@@ -158,7 +155,12 @@ def run(cfg: DictConfig) -> Float[Array, "num_particles dim"]:
     jnp.save(output_path + "/history.npy", history)
     jnp.save(output_path + "/weight.npy", weight)
     jnp.save(output_path + "/initial.npy", initial)
-    jnp.save(output_path + "/lr.npy", lr)
+
+    # # 学習率保存
+    # learning_rate = OmegaConf.create({
+    #     "lr": lr.tolist(),
+    # })
+    # cfg = OmegaConf.merge(cfg, learning_rate)
 
     # ノルムを1に正規化
     history /= jnp.linalg.norm(history, axis=-1, keepdims=True)
@@ -167,7 +169,9 @@ def run(cfg: DictConfig) -> Float[Array, "num_particles dim"]:
 
     # 結果表示
     # plot_images_trajectory(history, interval=5, path=output_path)
-    plot_cos(history, weight, path=output_path)
+    # plot_cos(history, weight, path=output_path)
+    # plot_cos_trajectory(history, weight, path=output_path)
+    plot_tsne_trajectory(history, path=output_path)
 
 
 if __name__ == "__main__":

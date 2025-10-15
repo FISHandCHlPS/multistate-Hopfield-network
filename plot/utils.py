@@ -1,6 +1,6 @@
 import numpy as np
 import polars as pl
-from jaxtyping import ArrayLike
+from jaxtyping import Array, ArrayLike
 
 
 def array2df(arr: ArrayLike, column_names: list[str] | None = None) -> pl.DataFrame:
@@ -36,11 +36,31 @@ def array2df(arr: ArrayLike, column_names: list[str] | None = None) -> pl.DataFr
     )
 
     # 各軸の座標を生成して縦に展開
-    grids = np.indices(arr.shape)  # 形状: (ndim, *arr.shape)
-    flat_coords = [g.reshape(-1) for g in grids]
+    coordinates = get_flat_coord(arr)  # 形状: (arr.size, arr.ndim)
     flat_values = arr.reshape(-1)
 
-    data = {name: flat_coords[i] for i, name in enumerate(idx_names)}
+    data = {name: coordinates[:, i] for i, name in enumerate(idx_names)}
     data["value"] = flat_values
 
     return pl.DataFrame(data)
+
+
+def get_flat_coord(arr: ArrayLike) -> Array:
+    """ndarrayの座標を縦に展開する。
+
+    Args:
+        arr: 入力配列。
+
+    Returns:
+        ndarray: 変換後の配列。形状は (arr.size, arr.ndim)。
+
+    """
+    arr = np.asarray(arr)
+
+    if arr.ndim == 0:
+        msg = "arr.ndim は 1 以上である必要があります"
+        raise ValueError(msg)
+
+    # 各軸の座標を生成して縦に展開
+    grids = np.indices(arr.shape)  # 形状: (ndim, *arr.shape)
+    return np.stack(grids, axis=-1).reshape(-1, arr.ndim)   # 座標: shape(arr.size, arr.ndim)
