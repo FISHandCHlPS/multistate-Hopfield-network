@@ -13,6 +13,7 @@ def plot_images_trajectory(
     steps, num_particles, dim = history.shape
     xs = history.reshape(steps, num_particles, 32, 32)
 
+
     fig = px.imshow(
         xs[::interval],
         animation_frame=0,
@@ -62,4 +63,25 @@ def plot_images(
         aspect="auto",
     )
     fig.write_html(f"{path}/{filename}")
+    fig.show()
+
+
+def plot_mean_image(history, interval=50):
+    steps, num_particles, dim = history.shape
+    _images = history.reshape(steps, num_particles, 32, 32)
+    mean_image = _images.mean(axis=1)
+
+    fig = px.imshow(
+        mean_image[::interval],
+        animation_frame=0,
+        #facet_col=1,
+        #facet_col_wrap=5,
+        #facet_col_spacing=0.1,
+        binary_string=True,
+        labels={"animation_frame": "t"},
+        title="mean image",
+        width=1000,
+        aspect="auto",
+    )
+    fig.write_html("output/mean_image.html")
     fig.show()

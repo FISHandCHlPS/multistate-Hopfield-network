@@ -6,6 +6,8 @@ import numpy as np
 import plotly.express as px
 import polars as pl
 from jaxtyping import ArrayLike, Float
+from matplotlib import cm
+from matplotlib.colors import Normalize
 
 from plot.evaluation import calc_cos
 from plot.loader import extract_data, extract_parameters
@@ -76,6 +78,14 @@ def plot_similarity_trajectory(history_images: np.ndarray, memory_images: np.nda
     fig.write_html("./output/similarity_trajectory.html")
 
 
+SPEED = np.array([
+    0.20502764, 0.10907875, 0.23376891, 0.23414722, 0.18664654, 0.11215612,
+    0.17957862, 0.2656873,  0.25192973, 0.22420937, 0.5778988,  0.38830575,
+    0.48060235, 0.44633207, 0.7669708,  0.538585,   0.5703915,  0.34581333,
+    0.4458383,  0.5966047,
+])
+
+
 def plot_cos(
     history_images: np.ndarray, memory_images: np.ndarray,
     path: str = "output", filename: str = "cosine_similarity.html",
@@ -91,7 +101,20 @@ def plot_cos(
     """
     sim_matrix = calc_cos(history_images, memory_images)  # 類似度 (T, N, M)
 
-    df = array2df(sim_matrix, column_names=["t", "particle", "memory"])
+    df = (
+        array2df(sim_matrix, column_names=["t", "particle", "memory"])
+        # .with_columns(
+        #     pl.col("particle")
+        #     .cast(pl.Int64).map_elements(lambda x: SPEED[x])
+        #     .alias("speed"),
+        # )
+    )
+    # 正規化とカラーマップ適用
+    norm = Normalize(vmin=SPEED.min(), vmax=SPEED.max())
+    cmap = cm.get_cmap("viridis")
+    colors_rgba = cmap(norm(SPEED))
+    # RGB文字列形式に変換
+    colors_rgb = [f"rgb({int(c[0]*255)},{int(c[1]*255)},{int(c[2]*255)})" for c in colors_rgba]
 
     # サブプロットで各記憶ごとに可視化（粒子ごとに色分け）
     fig = px.line(
@@ -102,7 +125,8 @@ def plot_cos(
         facet_col="memory",
         line_group="particle",
         markers=False,
-        title="Cosine Similarity over Time per Memory (faceted)",
+        color_discrete_sequence=colors_rgb,
+        title="Cosine Similarity over Time per Memory",
     )
 
     fig.update_yaxes(title_text="cosine similarity", range=[-1.0, 1.0])
@@ -199,7 +223,7 @@ def plot_cos_multirun(
 
     """
     params = extract_parameters(multirun_data)  # パラメータ
-    params_filtered = params.filter(pl.col("beta").is_between(1, 2)).rename({"index": "filter_idx"})
+    params_filtered = params.filter(pl.col("beta").is_between(2.5, 3.5)).rename({"index": "filter_idx"})
     filter_idx = params_filtered.select("filter_idx").to_numpy().flatten()
 
     # フィルタリングしたパラメータの履歴
@@ -215,7 +239,12 @@ def plot_cos_multirun(
     df_with_params = (
         data_df.join(params_filtered, on="index")
         .drop("index")
-        .sort(by=["beta","gamma"])
+        .with_columns(
+            pl.when(pl.col("particles_idx") < 15)
+            .then(0)
+            .otherwise(1)
+            .alias("speed"),
+        )
     )
 
     # サブプロットで各記憶ごとに可視化（粒子ごとに色分け）
@@ -224,7 +253,7 @@ def plot_cos_multirun(
             df,
             x="t",
             y="value",
-            color="particles_idx",
+            color="speed",
             facet_row="beta",
             facet_col="gamma",
             line_group="particles_idx",
@@ -243,4 +272,5 @@ def plot_cos_multirun(
     for i in range(3):
         df_ploting = df_with_params.filter(pl.col("memory_idx") == i)
         plot(df_ploting, title = f"cosine similarity of memory {i}")
+
 

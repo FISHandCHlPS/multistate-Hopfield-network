@@ -1,8 +1,10 @@
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Literal
 
 import numpy as np
 import polars as pl
+from jaxtyping import ArrayLike
 from omegaconf import OmegaConf
 from omegaconf.errors import OmegaConfBaseException
 
@@ -55,7 +57,7 @@ def results_loader(
             continue
 
         cfg_dict: dict[str, Any] | None = None
-        hydra_cfg = run_dir / ".hydra" / "config.yaml"
+        hydra_cfg = run_dir / ".hydra" / "config.yaml"  # 実行ディレクトリのconfigにする
         if hydra_cfg.exists():  # config.yaml が存在すれば読み込む
             try:
                 cfg = OmegaConf.load(hydra_cfg)
@@ -103,6 +105,22 @@ def extract_parameters(results: list[dict[str]]) -> pl.DataFrame:
         .select("config").unnest("config")  # 展開してパラメータ毎の列を作成
         .with_row_index(name="index")  # index列を追加
     )
+
+
+def eval_results(
+    results: list[dict[str]], eval_func: Callable[[ArrayLike], ArrayLike],
+    column_name: str = "eval", batch_size: int = 100,
+) -> pl.DataFrame:
+    """マルチラン結果を評価値のデータフレームに変換する"""
+    v = []
+    for i in range(0, len(results), batch_size):
+        batch_results = results[i:i+batch_size]
+        data = extract_data(batch_results, "history")
+        v.append(pl.DataFrame(eval_func(data), columns=[column_name]))
+
+    eval_df = pl.concat(v).with_row_index(name="index")  # 評価値のDataFrame
+    params = extract_parameters(results)  # パラメータのDataFrame
+    return params.join(eval_df, on="index").drop("index")
 
 
 if __name__ == "__main__":

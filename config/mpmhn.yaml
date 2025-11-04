@@ -1,27 +1,48 @@
 # Base config for mpmhn.py
 # Hydra will load this when running mpmhn.py
 
+# # 収束状態
+# seed: 42
+# num_particles: 20  # 粒子数
+# steps: 200 # 合計ステップ数
+# # learning_rate: 0.1 # 学習率
+# gamma: 0.3   # 斥力の強さ0.5
+# c: 2.0  # 斥力指数
+# beta: 6.0  # CMHNの逆温度
+# f_max: 10.0  # 斥力の最大値
+
+
+# 中間状態
 seed: 42
 num_particles: 20  # 粒子数
-steps: 1000 # 合計ステップ数
+steps: 200 # 合計ステップ数
 # learning_rate: 0.1 # 学習率
-gamma: 0.3   # 斥力の強さ
+gamma: 0.3   # 斥力の強さ0.5
 c: 2.0  # 斥力指数
-beta: 1.0  # CMHNの逆温度
+beta: 3.5  # CMHNの逆温度
 f_max: 10.0  # 斥力の最大値
 
+
+# # ランダム状態
 # seed: 42
-# num_particles:20
-# steps: 100
-# learning_rate: 0.1
-# gamma: 0.3
-# c: 2.0
-# beta: 1.0
-# f_max: 10.0
+# num_particles: 20  # 粒子数
+# steps: 200 # 合計ステップ数
+# # learning_rate: 0.1 # 学習率
+# gamma: 0.3   # 斥力の強さ0.5
+# c: 2.0  # 斥力指数
+# beta: 1.0  # CMHNの逆温度
+# f_max: 10.0  # 斥力の最大値
+
+stimulus:
+  start: 20
+  end: 100
+  target: 0
+  std: 0.2
+
 
 defaults:
   - override hydra/job_logging: disabled
-  #- override hydra/hydra_logging: disabled
+
 
 hydra:
   job:

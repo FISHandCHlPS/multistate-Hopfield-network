@@ -54,3 +54,27 @@ def calc_timechange(history: Float[ArrayLike, "... steps n_particles dim"]) -> t
     var = np.var(timechange, axis=-1)
 
     return mean, var
+
+
+def calc_entropy(
+    history: Float[ArrayLike, "... steps n_particles dim"],
+    w: Float[ArrayLike, "dim n_memory"],
+) -> Float[Array, "... steps"]:
+    """エントロピーを計算する"""
+    history = np.asarray(history)
+    w = np.asarray(w)
+
+    # コサイン類似度
+    sim_matrix = calc_cos(history, w)  # (..., steps, n_particles, n_memory)
+
+    # 一番類似度が高い記憶インデックス
+    max_sim_indices = np.argmax(sim_matrix, axis=-1)  # (..., steps, n_particles)
+
+    category = np.eye(history.shape[-2], dtype=float)
+    counts = np.sum(
+        category[max_sim_indices],
+        axis=-2,
+    )  # (..., steps, n_memory)
+    prob = counts / history.shape[-2]  # (..., steps, n_memory)
+    # エントロピーを計算    $$H(X) = -\sum_i p(x_i) \log_2 p(x_i)$$
+    return - np.sum(prob * np.log2(prob + 1e-10), axis=-1)  # (..., steps)
