@@ -272,5 +272,3 @@ def plot_cos_multirun(
     for i in range(3):
         df_ploting = df_with_params.filter(pl.col("memory_idx") == i)
         plot(df_ploting, title = f"cosine similarity of memory {i}")
-
-

@@ -11,16 +11,14 @@
 # beta: 6.0  # CMHNの逆温度
 # f_max: 10.0  # 斥力の最大値
 
-
-# 中間状態
-seed: 42
-num_particles: 20  # 粒子数
-steps: 200 # 合計ステップ数
-gamma: 0.3   # 斥力の強さ0.5
-c: 2.0  # 斥力指数
-beta: 3.5  # CMHNの逆温度
-f_max: 10.0  # 斥力の最大値
-num_patterns: 3  # 記憶パターンの数
+# # 中間状態
+# seed: 42
+# sample_size: 20  # 粒子数
+# steps: 200 # 合計ステップ数
+# gamma: 0.3   # 斥力の強さ0.5
+# c: 2.0  # 斥力指数
+# beta: 3.5  # CMHNの逆温度
+# f_max: 10.0  # 斥力の最大値
 
 # # ランダム状態
 # seed: 42
@@ -31,7 +29,16 @@ num_patterns: 3  # 記憶パターンの数
 # beta: 1.0  # CMHNの逆温度
 # f_max: 10.0  # 斥力の最大値
 
+# ------------------ここまでレガシー------------------
 
+seed: 42
+memory_size: 3  # 記憶パターンの数
+sample_size: 20  # 粒子数
+steps: 200 # 合計ステップ数
+gamma: 0.3   # 斥力の強さ0.5
+c: 2.0  # 斥力指数
+beta: 3.5  # CMHNの逆温度
+f_max: 10.0  # 斥力の最大値
 eta: 0.4  # 入力刺激の強さ
 
 lr_configs:
@@ -64,9 +71,8 @@ hydra:
   sweeper:
     params:
       seed: 0
-      num_particles: 20
+      sample_size: 20
       steps: 500
-      #learning_rate: 0.1
       gamma: 0.1, 0.2, 0.3, 0.5
       c: 2.0
       beta: range(0.5, 8, 0.1)

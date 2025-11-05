@@ -27,9 +27,6 @@ def plot_entropy_time_series(
         filename (str, optional): 出力ファイル名。デフォルトは "entropy_time_series.html"。
         interval (int, optional): プロットするステップ間隔。デフォルトは 1。
 
-    Returns:
-        None
-
     """
     if interval <= 0:
         message = "interval は正の整数で指定してください。"
@@ -62,7 +59,7 @@ def plot_entropy_multirun(
     multirun_data: list[dict[Literal["history", "weight", "initial", "config", "run_dir"]]],
     memory: Float[ArrayLike, "dim num_memory"],
 ) -> None:
-    """多ランダムシミュレーションのエントロピーをプロットする。"""
+    """多ランダムシミュレーションのエントロピーをプロットする"""
 
     def mean_entropy(
         history: Float[ArrayLike, "trial steps num_particles dim"],
@@ -72,5 +69,7 @@ def plot_entropy_multirun(
 
     df = eval_results(multirun_data, mean_entropy, column_name="entropy")
 
-    fig = px.heatmap(df, x="gamma", y="trial", z="entropy")
+    
+
+    fig = px.imshow(df, x="gamma", y="trial", z="entropy")
     fig.show()
