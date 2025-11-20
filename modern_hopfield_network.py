@@ -31,7 +31,7 @@ def flatten_images(images: ArrayLike) -> Array:
 
 
 def update(x: ArrayLike, w: Array) -> Array:
-    """入力状態ベクトル x を1ステップ更新する（記憶Wに基づくMHN更新）。
+    """入力状態ベクトル x を1ステップ更新する(記憶Wに基づくMHN更新)。
 
     Args:
         x (ArrayLike): 入力状態ベクトル (shape: (d,))

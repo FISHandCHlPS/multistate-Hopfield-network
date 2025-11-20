@@ -78,23 +78,17 @@ def plot_similarity_trajectory(history_images: np.ndarray, memory_images: np.nda
     fig.write_html("./output/similarity_trajectory.html")
 
 
-SPEED = np.array([
-    0.20502764, 0.10907875, 0.23376891, 0.23414722, 0.18664654, 0.11215612,
-    0.17957862, 0.2656873,  0.25192973, 0.22420937, 0.5778988,  0.38830575,
-    0.48060235, 0.44633207, 0.7669708,  0.538585,   0.5703915,  0.34581333,
-    0.4458383,  0.5966047,
-])
-
-
 def plot_cos(
-    history_images: np.ndarray, memory_images: np.ndarray,
-    path: str = "output", filename: str = "cosine_similarity.html",
+    history_images: np.ndarray, memory_images: np.ndarray, speed: ArrayLike,
+    disp_mem_size: int = 3, path: str = "output", filename: str = "cosine_similarity.html",
 ) -> None:
     """各記憶に対するコサイン類似度の時間変化を可視化
 
     Args:
         history_images (np.ndarray): 形状 (T, N, D)。時刻 T、粒子 N、次元 D の履歴。
         memory_images (np.ndarray): 形状 (D, M)。記憶 M、本数はサブプロットの数になる。
+        speed (ArrayLike): 形状 (N,)。粒子のスピード。
+        disp_mem_size (int): 表示する記憶の数。
         path (str): 出力先のディレクトリ。
         filename (str): 出力ファイル名。
 
@@ -103,16 +97,13 @@ def plot_cos(
 
     df = (
         array2df(sim_matrix, column_names=["t", "particle", "memory"])
-        # .with_columns(
-        #     pl.col("particle")
-        #     .cast(pl.Int64).map_elements(lambda x: SPEED[x])
-        #     .alias("speed"),
-        # )
+        .filter(pl.col("memory") < disp_mem_size)
     )
+
     # 正規化とカラーマップ適用
-    norm = Normalize(vmin=SPEED.min(), vmax=SPEED.max())
+    norm = Normalize(vmin=speed.min(), vmax=speed.max())
     cmap = cm.get_cmap("viridis")
-    colors_rgba = cmap(norm(SPEED))
+    colors_rgba = cmap(norm(speed))
     # RGB文字列形式に変換
     colors_rgb = [f"rgb({int(c[0]*255)},{int(c[1]*255)},{int(c[2]*255)})" for c in colors_rgba]
 
@@ -223,7 +214,11 @@ def plot_cos_multirun(
 
     """
     params = extract_parameters(multirun_data)  # パラメータ
-    params_filtered = params.filter(pl.col("beta").is_between(2.5, 3.5)).rename({"index": "filter_idx"})
+    params_filtered = (
+        params.filter(pl.col("beta")
+        .is_between(2.5, 3.5))
+        .rename({"trial": "filter_idx"})
+    )
     filter_idx = params_filtered.select("filter_idx").to_numpy().flatten()
 
     # フィルタリングしたパラメータの履歴
@@ -232,13 +227,13 @@ def plot_cos_multirun(
     sim_matrix = calc_cos(history, memory)  # 類似度 (run, step, particles, n_memory)
     data_df = array2df(
         sim_matrix,
-        column_names=["index", "t", "particles_idx", "memory_idx"],
+        column_names=["trial", "t", "particles_idx", "memory_idx"],
     )  # 新たにインデックスが作成される
-    params_filtered = params_filtered.with_row_index("index")   # 上に合わせてインデックスを振り直す
+    params_filtered = params_filtered.with_row_index("trial")   # 上に合わせてインデックスを振り直す
 
     df_with_params = (
-        data_df.join(params_filtered, on="index")
-        .drop("index")
+        data_df.join(params_filtered, on="trial")
+        .drop("trial")
         .with_columns(
             pl.when(pl.col("particles_idx") < 15)
             .then(0)

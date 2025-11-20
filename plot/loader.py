@@ -57,16 +57,16 @@ def results_loader(
             continue
 
         cfg_dict: dict[str, Any] | None = None
-        hydra_cfg = run_dir / ".hydra" / "config.yaml"  # 実行ディレクトリのconfigにする
-        if hydra_cfg.exists():  # config.yaml が存在すれば読み込む
+        cfg_path = run_dir / "settings.yaml"
+        if cfg_path.exists():
             try:
-                cfg = OmegaConf.load(hydra_cfg)
+                cfg = OmegaConf.load(cfg_path)
                 cfg_dict = OmegaConf.to_container(cfg, resolve=True)
                 if not isinstance(cfg_dict, dict):
                     cfg_dict = {"config": cfg_dict}
             except (OmegaConfBaseException, OSError) as e:
                 cfg_dict = None
-                print(f"[WARN] config.yaml 読み込み失敗: {hydra_cfg} -> {e}")
+                print(f"[WARN] settings.yaml 読み込み失敗: {cfg_path} -> {e}")
 
         results.append({
             "run_dir": str(run_dir),
@@ -102,8 +102,9 @@ def extract_parameters(results: list[dict[str]]) -> pl.DataFrame:
     """マルチラン結果からパラメータを抽出して, DataFrameに変換する"""
     return (
         pl.DataFrame(results)   # dfに変換
-        .select("config").unnest("config")  # 展開してパラメータ毎の列を作成
-        .with_row_index(name="index")  # index列を追加
+        .select("config")
+        .with_row_index(name="trial")  # index列を追加
+        .unnest("config")  # 展開してパラメータ毎の列を作成
     )
 
 
@@ -111,16 +112,16 @@ def eval_results(
     results: list[dict[str]], eval_func: Callable[[ArrayLike], ArrayLike],
     column_name: str = "eval", batch_size: int = 100,
 ) -> pl.DataFrame:
-    """マルチラン結果を評価値のデータフレームに変換する"""
+    """マルチラン結果に評価値を追加する"""
     v = []
     for i in range(0, len(results), batch_size):
         batch_results = results[i:i+batch_size]
         data = extract_data(batch_results, "history")
-        v.append(pl.DataFrame(eval_func(data), columns=[column_name]))
+        v.append(pl.DataFrame(eval_func(data), schema=[column_name]))
 
-    eval_df = pl.concat(v).with_row_index(name="index")  # 評価値のDataFrame
+    eval_df = pl.concat(v).with_row_index(name="trial")  # 評価値のDataFrame
     params = extract_parameters(results)  # パラメータのDataFrame
-    return params.join(eval_df, on="index").drop("index")
+    return params.join(eval_df, on="trial").drop("trial")
 
 
 if __name__ == "__main__":

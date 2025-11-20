@@ -158,9 +158,10 @@ def plot_results(
     output_path: str,
     history: Float[Array, "steps sample_size dim"],
     weight: Float[Array, "dim memory_size"],
+    lr: ArrayLike,
 ) -> None:
     """結果をプロットする"""
-    plot_cos(history, weight, path=output_path)
+    plot_cos(history, weight, lr, path=output_path)
     plot_entropy_time_series(history, weight, path=output_path)
 
 
@@ -190,7 +191,7 @@ def run(cfg: DictConfig) -> None:
         sample_size=cfg.sample_size,
         key=sub_key,
         base_idx=0,     # [0, 1, 2],
-        std=0.1,
+        std=0.2,
     )
 
     rang_key, sub_key = random.split(rang_key)
@@ -206,7 +207,7 @@ def run(cfg: DictConfig) -> None:
         "noise_amount": float(noise_amount),
     }
     save_results(output_path, history, weight, initial, params, cfg)
-    plot_results(output_path, history, weight)
+    plot_results(output_path, history, weight, lr)
 
 
 if __name__ == "__main__":
